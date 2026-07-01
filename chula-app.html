@@ -1,1026 +1,358 @@
-<!DOCTYPE html>
-<html lang="zh-TW">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
-<title>初辣｜工作室</title>
-<style>
-*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+// ══════════════════════════════════════════════════════════════
+// 初辣工作室｜Web App API
+// 這份貼到「初辣工作室資料庫」的 Apps Script
+// 部署為「網路應用程式」後，app 透過它讀寫所有資料
+// ══════════════════════════════════════════════════════════════
 
-:root{
-  --black:#111;
-  --white:#fff;
-  --gray1:#f4f4f4;
-  --gray2:#e8e8e8;
-  --gray3:#bbb;
-  --gray4:#888;
-  --gray5:#444;
-  --red:#c0392b;
-  --green:#1a5236;
-  --amber:#7a5200;
+const SS_ID = "1-NsoQ9iCt4IWUlBmajv6jB9WZCxb9Ugbxkaqd_2LsJU";
+
+// 表單同步設定（保留原本的同步功能）
+const FORM_SHEET_ID  = "1AM641OF9I5oPcr_95ZD2PTUPf1fnWo70W-6qqBhG5oc";
+const FORM_TAB_NAME  = "表單回覆 1";
+const UNIT_PRICE     = 220;
+
+// ── CORS 回應包裝 ─────────────────────────────────────────────
+function response(data) {
+  return ContentService
+    .createTextOutput(JSON.stringify(data))
+    .setMimeType(ContentService.MimeType.JSON);
 }
 
-body{
-  background:var(--white);
-  color:var(--black);
-  font-family:-apple-system,'Helvetica Neue',Arial,sans-serif;
-  min-height:100vh;
-  padding-bottom:80px;
-  font-size:14px;
-}
+function ok(data)  { return response({ status: "ok",    data: data }); }
+function err(msg)  { return response({ status: "error", message: msg }); }
 
-/* ── HEADER ── */
-header{
-  background:var(--black);
-  padding:16px 20px 14px;
-  display:flex;
-  align-items:center;
-  justify-content:space-between;
-  position:sticky;top:0;z-index:100;
-}
-.logo{font-size:22px;font-weight:900;color:var(--white);letter-spacing:-1px}
-.sync-btn{
-  background:none;border:1px solid #333;color:var(--gray3);
-  border-radius:6px;padding:5px 10px;font-size:11px;cursor:pointer;
-  display:flex;align-items:center;gap:5px;
-}
-.sync-btn:active{background:#222}
-.spin{animation:spin .7s linear infinite;display:inline-block}
-@keyframes spin{to{transform:rotate(360deg)}}
+// ══════════════════════════════════════════════════════════════
+// GET：讀取資料
+// ══════════════════════════════════════════════════════════════
+function doGet(e) {
+  const action = e.parameter.action || "";
+  const ss = SpreadsheetApp.openById(SS_ID);
 
-/* ── BOTTOM NAV ── */
-nav{
-  position:fixed;bottom:0;left:0;right:0;
-  background:var(--white);
-  border-top:1px solid var(--gray2);
-  display:flex;
-  z-index:100;
-}
-.nav-item{
-  flex:1;padding:10px 4px 12px;
-  display:flex;flex-direction:column;align-items:center;gap:3px;
-  cursor:pointer;border:none;background:none;
-  font-size:10px;color:var(--gray4);font-family:inherit;
-  transition:color .15s;
-}
-.nav-item.active{color:var(--black)}
-.nav-icon{font-size:20px;line-height:1}
-
-/* ── PAGES ── */
-.page{display:none;padding:20px}
-.page.active{display:block}
-
-/* ── SECTION LABEL ── */
-.sec-label{
-  font-size:10px;font-weight:700;letter-spacing:1.5px;
-  text-transform:uppercase;color:var(--gray4);
-  margin-bottom:12px;margin-top:24px;
-}
-.sec-label:first-child{margin-top:0}
-
-/* ── KPI GRID ── */
-.kpi-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:4px}
-.kpi{
-  background:var(--gray1);border-radius:10px;padding:14px;
-}
-.kpi.full{grid-column:1/-1}
-.kpi-label{font-size:10px;font-weight:700;letter-spacing:.8px;color:var(--gray4);margin-bottom:6px}
-.kpi-value{font-size:26px;font-weight:900;letter-spacing:-1px;line-height:1}
-.kpi-sub{font-size:11px;color:var(--gray4);margin-top:4px}
-.v-green{color:var(--green)}
-.v-red{color:var(--red)}
-.v-black{color:var(--black)}
-
-/* ── LIST ITEMS ── */
-.list{display:flex;flex-direction:column;gap:1px;border-radius:10px;overflow:hidden;margin-bottom:4px}
-.list-item{
-  background:var(--gray1);padding:13px 16px;
-  display:flex;align-items:center;justify-content:space-between;
-  cursor:pointer;
-}
-.list-item:active{background:var(--gray2)}
-.list-item-left{display:flex;flex-direction:column;gap:3px}
-.list-item-title{font-size:14px;font-weight:600}
-.list-item-sub{font-size:11px;color:var(--gray4)}
-.list-item-right{display:flex;flex-direction:column;align-items:flex-end;gap:4px}
-.list-item-amount{font-size:15px;font-weight:700}
-
-/* ── BADGE ── */
-.badge{
-  display:inline-block;padding:2px 8px;border-radius:20px;
-  font-size:10px;font-weight:700;letter-spacing:.3px;
-}
-.b-pending{background:#fef3dc;color:var(--amber)}
-.b-confirmed{background:#e8f0fe;color:#1a3a8f}
-.b-packing{background:#e0f0ff;color:#004a8f}
-.b-shipped{background:#e8eef8;color:#2c4a7c}
-.b-done{background:#dff0e8;color:var(--green)}
-.b-cancelled{background:#f4f4f4;color:var(--gray4)}
-.b-unpaid{background:#fde8e4;color:var(--red)}
-.b-paid{background:#dff0e8;color:var(--green)}
-.b-warn{background:#fde8e4;color:var(--red)}
-.b-ok{background:#dff0e8;color:var(--green)}
-
-/* ── FAB ── */
-.fab{
-  position:fixed;bottom:80px;right:20px;
-  width:52px;height:52px;border-radius:50%;
-  background:var(--black);color:var(--white);
-  border:none;font-size:24px;cursor:pointer;
-  box-shadow:0 4px 16px rgba(0,0,0,.25);
-  display:flex;align-items:center;justify-content:center;
-  z-index:99;transition:transform .1s;
-}
-.fab:active{transform:scale(.93)}
-.fab.hidden{display:none}
-
-/* ── MODAL ── */
-.modal-bg{
-  position:fixed;inset:0;background:rgba(0,0,0,.5);
-  z-index:200;display:none;align-items:flex-end;
-}
-.modal-bg.open{display:flex}
-.modal{
-  background:var(--white);width:100%;
-  border-radius:16px 16px 0 0;
-  max-height:90vh;overflow-y:auto;
-  padding:20px 20px 40px;
-}
-.modal-handle{
-  width:36px;height:4px;background:var(--gray2);
-  border-radius:2px;margin:0 auto 20px;
-}
-.modal-title{font-size:17px;font-weight:800;margin-bottom:20px}
-
-/* ── FORM ── */
-.form-group{margin-bottom:16px}
-.form-label{font-size:11px;font-weight:700;color:var(--gray4);
-  letter-spacing:.8px;text-transform:uppercase;margin-bottom:6px;display:block}
-.form-input{
-  width:100%;background:var(--gray1);border:none;border-radius:8px;
-  padding:12px;font-size:15px;font-family:inherit;color:var(--black);outline:none;
-}
-.form-input:focus{background:var(--gray2)}
-.form-select{appearance:none;-webkit-appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%23888' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 12px center;padding-right:36px}
-.form-row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-
-/* ── SUBMIT BTN ── */
-.btn-submit{
-  width:100%;background:var(--black);color:var(--white);
-  border:none;border-radius:10px;padding:15px;
-  font-size:16px;font-weight:700;font-family:inherit;
-  cursor:pointer;margin-top:8px;
-}
-.btn-submit:active{background:var(--gray5)}
-.btn-submit:disabled{background:var(--gray3);cursor:not-allowed}
-
-/* ── EMPTY ── */
-.empty{text-align:center;padding:48px 20px;color:var(--gray4)}
-.empty-icon{font-size:36px;margin-bottom:8px}
-.empty-text{font-size:13px}
-
-/* ── LOADING ── */
-.loading{
-  display:flex;align-items:center;justify-content:center;
-  gap:8px;padding:40px;color:var(--gray4);font-size:13px;
-}
-.dot-loader{display:flex;gap:4px}
-.dot{width:6px;height:6px;background:var(--gray3);border-radius:50%;animation:bounce .8s infinite}
-.dot:nth-child(2){animation-delay:.15s}
-.dot:nth-child(3){animation-delay:.3s}
-@keyframes bounce{0%,80%,100%{transform:translateY(0)}40%{transform:translateY(-6px)}}
-
-/* ── ORDER DETAIL ── */
-.detail-row{
-  display:flex;justify-content:space-between;padding:11px 0;
-  border-bottom:1px solid var(--gray2);font-size:13px;
-}
-.detail-row:last-child{border-bottom:none}
-.detail-key{color:var(--gray4)}
-.detail-val{font-weight:600;text-align:right;max-width:60%}
-
-/* ── STATUS STEPPER ── */
-.stepper{display:flex;gap:0;margin:16px 0}
-.step{
-  flex:1;padding:8px 4px;text-align:center;font-size:11px;font-weight:700;
-  background:var(--gray2);color:var(--gray4);cursor:pointer;
-  border:none;font-family:inherit;transition:all .15s;
-}
-.step:first-child{border-radius:8px 0 0 8px}
-.step:last-child{border-radius:0 8px 8px 0}
-.step.active{background:var(--black);color:var(--white)}
-.step:active{opacity:.8}
-
-/* ── STOCK ITEM ── */
-.stock-item{
-  background:var(--gray1);border-radius:10px;padding:14px 16px;
-  display:flex;align-items:center;justify-content:space-between;
-  margin-bottom:2px;
-}
-.stock-name{font-weight:600;font-size:14px}
-.stock-meta{font-size:11px;color:var(--gray4);margin-top:2px}
-.stock-qty{display:flex;align-items:center;gap:10px}
-.qty-btn{
-  width:32px;height:32px;border-radius:50%;border:1px solid var(--gray2);
-  background:var(--white);font-size:18px;cursor:pointer;
-  display:flex;align-items:center;justify-content:center;
-  font-family:inherit;color:var(--black);
-}
-.qty-input{
-  width:56px;text-align:center;background:none;border:none;
-  font-size:16px;font-weight:700;font-family:inherit;color:var(--black);outline:none;
-}
-
-/* ── TOAST ── */
-.toast{
-  position:fixed;bottom:90px;left:50%;transform:translateX(-50%) translateY(20px);
-  background:var(--black);color:var(--white);padding:10px 20px;
-  border-radius:20px;font-size:13px;font-weight:600;
-  opacity:0;transition:all .25s;z-index:300;white-space:nowrap;
-}
-.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
-
-/* ── DIVIDER ── */
-.divider{height:1px;background:var(--gray2);margin:20px 0}
-</style>
-</head>
-<body>
-
-<header>
-  <div class="logo">初辣</div>
-  <button class="sync-btn" onclick="loadAll()">
-    <span id="sync-icon">↻</span> 更新
-  </button>
-</header>
-
-<!-- ── 底部導航 ── -->
-<nav>
-  <button class="nav-item active" onclick="showPage('overview',this)">
-    <span class="nav-icon">◎</span>總覽
-  </button>
-  <button class="nav-item" onclick="showPage('orders',this)">
-    <span class="nav-icon">📋</span>訂單
-  </button>
-  <button class="nav-item" onclick="showPage('stock',this)">
-    <span class="nav-icon">📦</span>庫存
-  </button>
-  <button class="nav-item" onclick="showPage('expenses',this)">
-    <span class="nav-icon">💴</span>支出
-  </button>
-  <button class="nav-item" onclick="showPage('batches',this)">
-    <span class="nav-icon">🫙</span>生產
-  </button>
-</nav>
-
-<!-- ── FAB ── -->
-<button class="fab" id="fab" onclick="openFab()">＋</button>
-
-<!-- ── 總覽 ── -->
-<div class="page active" id="page-overview">
-  <div id="overview-content">
-    <div class="loading"><div class="dot-loader"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div></div>
-  </div>
-</div>
-
-<!-- ── 訂單 ── -->
-<div class="page" id="page-orders">
-  <div id="orders-filter" style="display:flex;gap:8px;overflow-x:auto;padding-bottom:12px;scrollbar-width:none">
-    <button class="badge" style="padding:6px 14px;border:1px solid var(--gray2);background:var(--black);color:var(--white);cursor:pointer;white-space:nowrap;border-radius:20px;font-size:12px" onclick="filterOrders('')" id="f-all">全部</button>
-    <button class="badge" style="padding:6px 14px;border:1px solid var(--gray2);background:var(--white);cursor:pointer;white-space:nowrap;border-radius:20px;font-size:12px" onclick="filterOrders('待確認')" id="f-待確認">待確認</button>
-    <button class="badge" style="padding:6px 14px;border:1px solid var(--gray2);background:var(--white);cursor:pointer;white-space:nowrap;border-radius:20px;font-size:12px" onclick="filterOrders('備貨中')" id="f-備貨中">備貨中</button>
-    <button class="badge" style="padding:6px 14px;border:1px solid var(--gray2);background:var(--white);cursor:pointer;white-space:nowrap;border-radius:20px;font-size:12px" onclick="filterOrders('已出貨')" id="f-已出貨">已出貨</button>
-    <button class="badge" style="padding:6px 14px;border:1px solid var(--gray2);background:var(--white);cursor:pointer;white-space:nowrap;border-radius:20px;font-size:12px" onclick="filterOrders('已送達')" id="f-已送達">已送達</button>
-  </div>
-  <div id="orders-content">
-    <div class="loading"><div class="dot-loader"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div></div>
-  </div>
-</div>
-
-<!-- ── 庫存 ── -->
-<div class="page" id="page-stock">
-  <div id="stock-content">
-    <div class="loading"><div class="dot-loader"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div></div>
-  </div>
-</div>
-
-<!-- ── 支出 ── -->
-<div class="page" id="page-expenses">
-  <div id="expenses-content">
-    <div class="loading"><div class="dot-loader"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div></div>
-  </div>
-</div>
-
-<!-- ── 生產批次 ── -->
-<div class="page" id="page-batches">
-  <div id="batches-content">
-    <div class="loading"><div class="dot-loader"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div></div>
-  </div>
-</div>
-
-<!-- ══ MODALS ══════════════════════════════════════════════════ -->
-
-<!-- 訂單詳情 -->
-<div class="modal-bg" id="modal-order">
-  <div class="modal">
-    <div class="modal-handle"></div>
-    <div class="modal-title" id="modal-order-title">訂單詳情</div>
-    <div id="modal-order-body"></div>
-    <button class="btn-submit" style="margin-top:20px" onclick="closeModal('modal-order')">關閉</button>
-  </div>
-</div>
-
-<!-- 新增支出 -->
-<div class="modal-bg" id="modal-expense">
-  <div class="modal">
-    <div class="modal-handle"></div>
-    <div class="modal-title">新增支出</div>
-    <div class="form-group">
-      <label class="form-label">日期</label>
-      <input class="form-input" type="date" id="exp-date">
-    </div>
-    <div class="form-row">
-      <div class="form-group">
-        <label class="form-label">類別</label>
-        <select class="form-input form-select" id="exp-category">
-          <option>原物料採購</option>
-          <option>包裝材料</option>
-          <option>市集攤位費</option>
-          <option>運費／寄件</option>
-          <option>設備工具</option>
-          <option>行銷設計</option>
-          <option>雜支</option>
-        </select>
-      </div>
-      <div class="form-group">
-        <label class="form-label">金額（元）</label>
-        <input class="form-input" type="number" id="exp-amount" placeholder="0">
-      </div>
-    </div>
-    <div class="form-group">
-      <label class="form-label">項目說明</label>
-      <input class="form-input" id="exp-desc" placeholder="例：益昌雞心椒粉 300g">
-    </div>
-    <div class="form-row">
-      <div class="form-group">
-        <label class="form-label">付款方式</label>
-        <select class="form-input form-select" id="exp-payment">
-          <option>匯款</option><option>現金</option><option>信用卡</option><option>LINE Pay</option>
-        </select>
-      </div>
-      <div class="form-group">
-        <label class="form-label">供應商</label>
-        <input class="form-input" id="exp-supplier" placeholder="益昌實業">
-      </div>
-    </div>
-    <div class="form-group">
-      <label class="form-label">備註</label>
-      <input class="form-input" id="exp-note" placeholder="選填">
-    </div>
-    <button class="btn-submit" id="exp-submit" onclick="submitExpense()">儲存支出</button>
-    <button class="btn-submit" style="background:none;color:var(--gray4);margin-top:8px" onclick="closeModal('modal-expense')">取消</button>
-  </div>
-</div>
-
-<!-- 新增生產批次 -->
-<div class="modal-bg" id="modal-batch">
-  <div class="modal">
-    <div class="modal-handle"></div>
-    <div class="modal-title">新增生產批次</div>
-    <div class="form-row">
-      <div class="form-group">
-        <label class="form-label">生產日期</label>
-        <input class="form-input" type="date" id="batch-date">
-      </div>
-      <div class="form-group">
-        <label class="form-label">負責人</label>
-        <input class="form-input" id="batch-operator" placeholder="媽媽">
-      </div>
-    </div>
-    <div class="form-row">
-      <div class="form-group">
-        <label class="form-label">產出瓶數</label>
-        <input class="form-input" type="number" id="batch-qty" placeholder="22">
-      </div>
-      <div class="form-group">
-        <label class="form-label">包材成本（元）</label>
-        <input class="form-input" type="number" id="batch-packaging" placeholder="0">
-      </div>
-    </div>
-    <div style="background:var(--gray1);border-radius:8px;padding:12px;margin-bottom:16px">
-      <div style="font-size:11px;font-weight:700;color:var(--gray4);margin-bottom:8px">配方用量（預設值，可修改）</div>
-      <div class="form-row">
-        <div class="form-group" style="margin-bottom:8px">
-          <label class="form-label" style="margin-bottom:4px">葵花油 (ml)</label>
-          <input class="form-input" type="number" id="b-oil" value="3000">
-        </div>
-        <div class="form-group" style="margin-bottom:8px">
-          <label class="form-label" style="margin-bottom:4px">魔鬼椒粉 (g)</label>
-          <input class="form-input" type="number" id="b-devil" value="20">
-        </div>
-        <div class="form-group" style="margin-bottom:8px">
-          <label class="form-label" style="margin-bottom:4px">朝天椒粉 (g)</label>
-          <input class="form-input" type="number" id="b-facing" value="130">
-        </div>
-        <div class="form-group" style="margin-bottom:8px">
-          <label class="form-label" style="margin-bottom:4px">雞心椒粉 (g)</label>
-          <input class="form-input" type="number" id="b-heart" value="190">
-        </div>
-        <div class="form-group" style="margin-bottom:8px">
-          <label class="form-label" style="margin-bottom:4px">二荊條粉 (g)</label>
-          <input class="form-input" type="number" id="b-ejing" value="100">
-        </div>
-        <div class="form-group" style="margin-bottom:8px">
-          <label class="form-label" style="margin-bottom:4px">大紅袍花椒 (g)</label>
-          <input class="form-input" type="number" id="b-peppercorn" value="90">
-        </div>
-        <div class="form-group" style="margin-bottom:0">
-          <label class="form-label" style="margin-bottom:4px">匈牙利紅椒粉 (g)</label>
-          <input class="form-input" type="number" id="b-hungary" value="20">
-        </div>
-      </div>
-    </div>
-    <div class="form-group">
-      <label class="form-label">備註</label>
-      <input class="form-input" id="batch-note" placeholder="例：這批辣度調高了">
-    </div>
-    <button class="btn-submit" id="batch-submit" onclick="submitBatch()">儲存批次</button>
-    <button class="btn-submit" style="background:none;color:var(--gray4);margin-top:8px" onclick="closeModal('modal-batch')">取消</button>
-  </div>
-</div>
-
-<!-- 手動新增訂單 -->
-<div class="modal-bg" id="modal-addorder">
-  <div class="modal">
-    <div class="modal-handle"></div>
-    <div class="modal-title">手動新增訂單</div>
-    <div class="form-row">
-      <div class="form-group">
-        <label class="form-label">下單日期</label>
-        <input class="form-input" type="date" id="ao-date">
-      </div>
-      <div class="form-group">
-        <label class="form-label">來源</label>
-        <select class="form-input form-select" id="ao-source">
-          <option>朋友介紹</option><option>LINE官方帳號</option><option>市集現場</option><option>Instagram</option>
-        </select>
-      </div>
-    </div>
-    <div class="form-row">
-      <div class="form-group">
-        <label class="form-label">顧客姓名</label>
-        <input class="form-input" id="ao-name" placeholder="姓名">
-      </div>
-      <div class="form-group">
-        <label class="form-label">手機</label>
-        <input class="form-input" type="tel" id="ao-phone" placeholder="09xx">
-      </div>
-    </div>
-    <div class="form-row">
-      <div class="form-group">
-        <label class="form-label">訂購數量（瓶）</label>
-        <input class="form-input" type="number" id="ao-qty" placeholder="1">
-      </div>
-      <div class="form-group">
-        <label class="form-label">單價（元）</label>
-        <input class="form-input" type="number" id="ao-price" value="220">
-      </div>
-    </div>
-    <div class="form-group">
-      <label class="form-label">配送方式</label>
-      <select class="form-input form-select" id="ao-delivery">
-        <option>宅配到府</option><option>超商取貨</option><option>面交</option>
-      </select>
-    </div>
-    <div class="form-group">
-      <label class="form-label">收件地址</label>
-      <input class="form-input" id="ao-address" placeholder="填宅配地址或超商門市">
-    </div>
-    <div class="form-row">
-      <div class="form-group">
-        <label class="form-label">收款方式</label>
-        <select class="form-input form-select" id="ao-payment">
-          <option>匯款</option><option>LINE Pay</option><option>現金</option>
-        </select>
-      </div>
-      <div class="form-group">
-        <label class="form-label">LINE名稱</label>
-        <input class="form-input" id="ao-line" placeholder="選填">
-      </div>
-    </div>
-    <div class="form-group">
-      <label class="form-label">備註</label>
-      <input class="form-input" id="ao-note" placeholder="選填">
-    </div>
-    <button class="btn-submit" id="ao-submit" onclick="submitAddOrder()">新增訂單</button>
-    <button class="btn-submit" style="background:none;color:var(--gray4);margin-top:8px" onclick="closeModal('modal-addorder')">取消</button>
-  </div>
-</div>
-
-<!-- Toast -->
-<div class="toast" id="toast"></div>
-
-<script>
-const API = "https://script.google.com/macros/s/AKfycbycsADk9T9TGLXjAMmSWpe32fK4Tgv5U7aSKTg5TEyaAaXes2kV6hZKNEF4_f4HIyXc/exec";
-
-// ── 狀態 ─────────────────────────────────────────────────────
-let allOrders = [];
-let currentFilter = '';
-let currentPage = 'overview';
-let stockData = [];
-
-// ── 頁面切換 ─────────────────────────────────────────────────
-function showPage(id, el) {
-  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
-  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
-  document.getElementById('page-'+id).classList.add('active');
-  el.classList.add('active');
-  currentPage = id;
-
-  const fab = document.getElementById('fab');
-  fab.classList.toggle('hidden', id === 'overview');
-
-  if (id === 'orders'   && allOrders.length === 0) loadOrders();
-  if (id === 'stock'    && stockData.length === 0)  loadStock();
-  if (id === 'expenses') loadExpenses();
-  if (id === 'batches')  loadBatches();
-}
-
-// ── 載入全部 ─────────────────────────────────────────────────
-async function loadAll() {
-  const icon = document.getElementById('sync-icon');
-  icon.className = 'spin'; icon.textContent = '↻';
-  await Promise.all([loadOverview(), loadOrders(), loadStock()]);
-  icon.className = ''; icon.textContent = '↻';
-  showToast('已更新');
-}
-
-// ── API 呼叫 ─────────────────────────────────────────────────
-async function apiGet(action) {
-  const r = await fetch(`${API}?action=${action}`);
-  const j = await r.json();
-  if (j.status !== 'ok') throw new Error(j.message);
-  return j.data;
-}
-
-async function apiPost(body) {
-  const r = await fetch(API, {
-    method: 'POST',
-    body: JSON.stringify(body)
-  });
-  const j = await r.json();
-  if (j.status !== 'ok') throw new Error(j.message);
-  return j.data;
-}
-
-// ── 總覽 ─────────────────────────────────────────────────────
-async function loadOverview() {
-  const el = document.getElementById('overview-content');
-  el.innerHTML = `<div class="loading"><div class="dot-loader"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div></div>`;
   try {
-    const d = await apiGet('overview');
-    el.innerHTML = `
-      <div class="sec-label">本月財務</div>
-      <div class="kpi-grid">
-        <div class="kpi">
-          <div class="kpi-label">收入</div>
-          <div class="kpi-value v-black">$${fmt(d.monthRevenue)}</div>
-          <div class="kpi-sub">${d.monthOrders} 筆訂單</div>
-        </div>
-        <div class="kpi">
-          <div class="kpi-label">支出</div>
-          <div class="kpi-value v-black">$${fmt(d.monthExpense)}</div>
-        </div>
-        <div class="kpi full">
-          <div class="kpi-label">結餘</div>
-          <div class="kpi-value ${d.monthProfit >= 0 ? 'v-green' : 'v-red'}">$${fmt(d.monthProfit)}</div>
-        </div>
-      </div>
+    switch (action) {
 
-      <div class="sec-label" style="margin-top:20px">訂單狀態</div>
-      <div class="kpi-grid">
-        <div class="kpi" onclick="showPage('orders',document.querySelectorAll('.nav-item')[1]);filterOrders('待確認')" style="cursor:pointer">
-          <div class="kpi-label">待處理</div>
-          <div class="kpi-value ${d.pendingCount > 0 ? 'v-red' : 'v-black'}">${d.pendingCount}</div>
-          <div class="kpi-sub">筆需確認</div>
-        </div>
-        <div class="kpi" onclick="showPage('orders',document.querySelectorAll('.nav-item')[1]);filterOrders('已出貨')" style="cursor:pointer">
-          <div class="kpi-label">在途中</div>
-          <div class="kpi-value v-black">${d.shippedCount}</div>
-          <div class="kpi-sub">筆已出貨</div>
-        </div>
-      </div>
+      // ── 總覽 ─────────────────────────────────────────────
+      case "overview": {
+        const orders   = getSheetData(ss, "訂單");
+        const expenses = getSheetData(ss, "支出");
+        const stock    = getSheetData(ss, "原物料庫存");
 
-      ${d.lowStock && d.lowStock.length > 0 ? `
-      <div class="sec-label" style="margin-top:20px">庫存警示</div>
-      <div class="list">
-        ${d.lowStock.map(s => `
-          <div class="list-item">
-            <div class="list-item-left">
-              <div class="list-item-title">${s.name}</div>
-              <div class="list-item-sub">現有 ${s.qty}　安全庫存 ${s.safe}</div>
-            </div>
-            <span class="badge b-warn">${s.qty == 0 ? '缺貨' : '偏低'}</span>
-          </div>
-        `).join('')}
-      </div>` : `
-      <div class="sec-label" style="margin-top:20px">庫存狀態</div>
-      <div class="kpi full">
-        <div class="kpi-label">庫存</div>
-        <div class="kpi-value v-green" style="font-size:18px">全部正常 ✓</div>
-      </div>`}
-      <div style="font-size:10px;color:var(--gray3);text-align:right;margin-top:16px">
-        ${new Date().toLocaleString('zh-TW',{month:'numeric',day:'numeric',hour:'2-digit',minute:'2-digit'})} 更新
-      </div>`;
-  } catch(e) {
-    el.innerHTML = `<div class="empty"><div class="empty-icon">⚠️</div><div class="empty-text">${e.message}</div></div>`;
-  }
-}
+        const now   = new Date();
+        const month = now.getMonth();
+        const year  = now.getFullYear();
 
-// ── 訂單 ─────────────────────────────────────────────────────
-async function loadOrders() {
-  const el = document.getElementById('orders-content');
-  el.innerHTML = `<div class="loading"><div class="dot-loader"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div></div>`;
-  try {
-    allOrders = await apiGet('orders');
-    renderOrders();
-  } catch(e) {
-    el.innerHTML = `<div class="empty"><div class="empty-icon">⚠️</div><div class="empty-text">${e.message}</div></div>`;
-  }
-}
+        // 本月訂單金額
+        let monthRevenue = 0, monthOrders = 0;
+        orders.forEach(r => {
+          const d = new Date(r["下單日期"]);
+          if (d.getMonth() === month && d.getFullYear() === year) {
+            monthRevenue += parseFloat(r["訂單金額"]) || 0;
+            monthOrders++;
+          }
+        });
 
-function filterOrders(status) {
-  currentFilter = status;
-  document.querySelectorAll('[id^="f-"]').forEach(b => {
-    b.style.background = 'var(--white)';
-    b.style.color = 'var(--black)';
-  });
-  const active = document.getElementById('f-' + (status || 'all'));
-  if (active) { active.style.background = 'var(--black)'; active.style.color = 'var(--white)'; }
-  renderOrders();
-}
+        // 本月支出
+        let monthExpense = 0;
+        expenses.forEach(r => {
+          const d = new Date(r["日期"]);
+          if (d.getMonth() === month && d.getFullYear() === year) {
+            monthExpense += parseFloat(r["金額（元）"]) || 0;
+          }
+        });
 
-function renderOrders() {
-  const el = document.getElementById('orders-content');
-  const list = currentFilter ? allOrders.filter(o => o['訂單狀態'] === currentFilter) : allOrders;
-  if (!list.length) {
-    el.innerHTML = `<div class="empty"><div class="empty-icon">📋</div><div class="empty-text">沒有訂單</div></div>`;
-    return;
-  }
-  el.innerHTML = `<div class="list">${list.map(o => `
-    <div class="list-item" onclick="openOrder(${JSON.stringify(o).replace(/"/g,'&quot;')})">
-      <div class="list-item-left">
-        <div class="list-item-title">${o['訂購人姓名'] || '—'} <span style="font-size:12px;color:var(--gray4)">${o['訂單編號'] || ''}</span></div>
-        <div class="list-item-sub">${fmtDate(o['下單日期'])}　${o['訂購數量（瓶）'] || o['訂購數量']}瓶　${o['配送方式'] || ''}</div>
-      </div>
-      <div class="list-item-right">
-        <div class="list-item-amount">$${fmt(o['訂單金額'])}</div>
-        <span class="badge ${statusBadge(o['訂單狀態'])}">${o['訂單狀態'] || '—'}</span>
-      </div>
-    </div>`).join('')}</div>`;
-}
+        // 待處理訂單
+        const pending = orders.filter(r =>
+          ["待確認","已確認","備貨中"].includes(r["訂單狀態"])
+        );
+        const shipped = orders.filter(r => r["訂單狀態"] === "已出貨");
 
-function openOrder(o) {
-  const statusList = ['待確認','已確認','備貨中','已出貨','已送達'];
-  const cur = o['訂單狀態'] || '';
-  document.getElementById('modal-order-title').textContent = o['訂單編號'] || '訂單詳情';
-  document.getElementById('modal-order-body').innerHTML = `
-    <div class="stepper">
-      ${statusList.map(s => `<button class="step ${cur === s ? 'active' : ''}" onclick="updateStatus('${o['訂單編號']}','${s}',this)">${s}</button>`).join('')}
-    </div>
-    ${detailRow('顧客', o['訂購人姓名'])}
-    ${detailRow('手機', o['訂購人手機'])}
-    ${detailRow('LINE', o['LINE名稱'])}
-    ${detailRow('來源', o['來源管道'])}
-    ${detailRow('數量', (o['訂購數量（瓶）'] || o['訂購數量']) + ' 瓶')}
-    ${detailRow('金額', '$' + fmt(o['訂單金額']))}
-    <div class="divider"></div>
-    ${detailRow('配送', o['配送方式'])}
-    ${detailRow('收件人', o['收件人姓名'])}
-    ${detailRow('地址', o['收件地址'])}
-    ${o['超商品牌'] ? detailRow('超商', o['超商品牌'] + ' ' + (o['門市店號'] || '')) : ''}
-    <div class="divider"></div>
-    ${detailRow('收款', `<span class="badge ${o['收款狀態']==='已付款'?'b-paid':'b-unpaid'}">${o['收款狀態']||'未付款'}</span>`)}
-    ${detailRow('物流單號', o['物流單號'] || '—')}
-    ${o['備註'] ? detailRow('備註', o['備註']) : ''}
-    <div style="margin-top:16px;display:flex;gap:8px">
-      <button class="btn-submit" style="flex:1;background:${o['收款狀態']==='已付款'?'var(--gray3)':'var(--green)'}"
-        onclick="markPaid('${o['訂單編號']}','${o['收款狀態']}')">
-        ${o['收款狀態']==='已付款'?'已收款 ✓':'標記已收款'}
-      </button>
-    </div>
-    ${o['物流單號'] ? '' : `
-    <div style="margin-top:10px">
-      <div class="form-row">
-        <input class="form-input" id="track-input" placeholder="填入物流單號">
-        <button class="btn-submit" style="padding:10px" onclick="saveTrackNo('${o['訂單編號']}')">儲存</button>
-      </div>
-    </div>`}
-  `;
-  document.getElementById('modal-order').classList.add('open');
-}
+        // 庫存警示
+        const lowStock = stock.filter(r => {
+          const qty  = parseFloat(r["現有數量"]) || 0;
+          const safe = parseFloat(r["安全庫存量"]) || 0;
+          return r["品項名稱"] && (qty === 0 || (safe > 0 && qty <= safe));
+        }).map(r => ({ name: r["品項名稱"], qty: r["現有數量"], safe: r["安全庫存量"] }));
 
-function detailRow(k, v) {
-  return `<div class="detail-row"><span class="detail-key">${k}</span><span class="detail-val">${v||'—'}</span></div>`;
-}
-
-async function updateStatus(orderId, status, btn) {
-  btn.closest('.stepper').querySelectorAll('.step').forEach(s => s.classList.remove('active'));
-  btn.classList.add('active');
-  try {
-    await apiPost({ action: 'updateOrderStatus', orderId, status });
-    const order = allOrders.find(o => o['訂單編號'] === orderId);
-    if (order) order['訂單狀態'] = status;
-    showToast('狀態已更新：' + status);
-  } catch(e) { showToast('更新失敗：' + e.message); }
-}
-
-async function markPaid(orderId, currentStatus) {
-  if (currentStatus === '已付款') return;
-  try {
-    await apiPost({ action: 'updatePayment', orderId, paymentStatus: '已付款', paymentDate: today() });
-    const order = allOrders.find(o => o['訂單編號'] === orderId);
-    if (order) order['收款狀態'] = '已付款';
-    showToast('已標記收款');
-    closeModal('modal-order');
-    renderOrders();
-  } catch(e) { showToast('更新失敗：' + e.message); }
-}
-
-async function saveTrackNo(orderId) {
-  const val = document.getElementById('track-input').value.trim();
-  if (!val) return;
-  try {
-    await apiPost({ action: 'updateOrderStatus', orderId, status: '已出貨', trackingNo: val, shipDate: today() });
-    showToast('物流單號已儲存，狀態改為已出貨');
-    closeModal('modal-order');
-    await loadOrders();
-  } catch(e) { showToast('儲存失敗：' + e.message); }
-}
-
-// ── 庫存 ─────────────────────────────────────────────────────
-async function loadStock() {
-  const el = document.getElementById('stock-content');
-  el.innerHTML = `<div class="loading"><div class="dot-loader"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div></div>`;
-  try {
-    stockData = await apiGet('stock');
-    renderStock();
-  } catch(e) {
-    el.innerHTML = `<div class="empty"><div class="empty-icon">⚠️</div><div class="empty-text">${e.message}</div></div>`;
-  }
-}
-
-function renderStock() {
-  const el = document.getElementById('stock-content');
-  if (!stockData.length) {
-    el.innerHTML = `<div class="empty"><div class="empty-icon">📦</div><div class="empty-text">沒有庫存資料</div></div>`;
-    return;
-  }
-  const cats = [...new Set(stockData.map(s => s['分類'] || '其他'))];
-  el.innerHTML = cats.map(cat => {
-    const items = stockData.filter(s => s['分類'] === cat);
-    return `<div class="sec-label">${cat}</div>` + items.map((s, idx) => {
-      const qty = parseFloat(s['現有數量']) || 0;
-      const safe = parseFloat(s['安全庫存量']) || 0;
-      const isLow = qty === 0 || (safe > 0 && qty <= safe);
-      const globalIdx = stockData.indexOf(s);
-      return `
-      <div class="stock-item">
-        <div>
-          <div class="stock-name">${s['品項名稱']}</div>
-          <div class="stock-meta">${s['單位'] || ''} ｜ 安全庫存 ${safe}${s['單位']||''}</div>
-        </div>
-        <div style="display:flex;align-items:center;gap:8px">
-          ${isLow ? `<span class="badge b-warn">${qty===0?'缺貨':'偏低'}</span>` : ''}
-          <div class="stock-qty">
-            <button class="qty-btn" onclick="changeQty(${globalIdx},-1)">−</button>
-            <input class="qty-input" id="qty-${globalIdx}" value="${qty}" onchange="qtyChanged(${globalIdx})">
-            <button class="qty-btn" onclick="changeQty(${globalIdx},1)">＋</button>
-          </div>
-          <button onclick="saveQty(${globalIdx})" style="background:var(--black);color:var(--white);border:none;border-radius:6px;padding:6px 10px;font-size:12px;font-weight:700;cursor:pointer">存</button>
-        </div>
-      </div>`;
-    }).join('');
-  }).join('');
-}
-
-function changeQty(idx, delta) {
-  const input = document.getElementById('qty-'+idx);
-  const newVal = Math.max(0, (parseFloat(input.value) || 0) + delta);
-  input.value = newVal;
-  stockData[idx]._changed = true;
-}
-
-function qtyChanged(idx) {
-  stockData[idx]._changed = true;
-}
-
-async function saveQty(idx) {
-  const item = stockData[idx];
-  const qty = parseFloat(document.getElementById('qty-'+idx).value) || 0;
-  try {
-    await apiPost({ action: 'updateStock', name: item['品項名稱'], qty });
-    item['現有數量'] = qty;
-    showToast(item['品項名稱'] + ' 已更新');
-  } catch(e) { showToast('更新失敗：' + e.message); }
-}
-
-// ── 支出 ─────────────────────────────────────────────────────
-async function loadExpenses() {
-  const el = document.getElementById('expenses-content');
-  el.innerHTML = `<div class="loading"><div class="dot-loader"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div></div>`;
-  try {
-    const data = await apiGet('expenses');
-    if (!data.length) {
-      el.innerHTML = `<div class="empty"><div class="empty-icon">💴</div><div class="empty-text">還沒有支出記錄</div></div>`;
-      return;
-    }
-    // 本月合計
-    const now = new Date();
-    let monthTotal = 0;
-    data.forEach(r => {
-      const d = new Date(r['日期']);
-      if (d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear()) {
-        monthTotal += parseFloat(r['金額（元）']) || 0;
+        return ok({
+          monthRevenue,
+          monthExpense,
+          monthProfit: monthRevenue - monthExpense,
+          monthOrders,
+          pendingCount: pending.length,
+          shippedCount: shipped.length,
+          lowStock,
+          updatedAt: now.toISOString()
+        });
       }
-    });
-    el.innerHTML = `
-      <div class="kpi full" style="margin-bottom:16px">
-        <div class="kpi-label">本月支出合計</div>
-        <div class="kpi-value">$${fmt(monthTotal)}</div>
-      </div>
-      <div class="sec-label">所有記錄</div>
-      <div class="list">
-        ${data.map(r => `
-          <div class="list-item">
-            <div class="list-item-left">
-              <div class="list-item-title">${r['項目說明'] || '—'}</div>
-              <div class="list-item-sub">${fmtDate(r['日期'])}　${r['類別'] || ''}　${r['供應商／對象'] || ''}</div>
-            </div>
-            <div class="list-item-amount">$${fmt(r['金額（元）'])}</div>
-          </div>`).join('')}
-      </div>`;
-  } catch(e) {
-    el.innerHTML = `<div class="empty"><div class="empty-icon">⚠️</div><div class="empty-text">${e.message}</div></div>`;
-  }
-}
 
-// ── 生產批次 ─────────────────────────────────────────────────
-async function loadBatches() {
-  const el = document.getElementById('batches-content');
-  el.innerHTML = `<div class="loading"><div class="dot-loader"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div></div>`;
-  try {
-    const data = await apiGet('batches');
-    if (!data.length) {
-      el.innerHTML = `<div class="empty"><div class="empty-icon">🫙</div><div class="empty-text">還沒有生產記錄</div></div>`;
-      return;
+      // ── 訂單列表 ─────────────────────────────────────────
+      case "orders": {
+        const orders = getSheetData(ss, "訂單");
+        const filter = e.parameter.status || "";
+        const result = filter
+          ? orders.filter(r => r["訂單狀態"] === filter)
+          : orders;
+        return ok(result.reverse()); // 最新在前
+      }
+
+      // ── 庫存 ─────────────────────────────────────────────
+      case "stock": {
+        const stock = getSheetData(ss, "原物料庫存");
+        return ok(stock.filter(r => r["品項名稱"]));
+      }
+
+      // ── 支出列表 ─────────────────────────────────────────
+      case "expenses": {
+        const expenses = getSheetData(ss, "支出");
+        return ok(expenses.filter(r => r["項目說明"]).reverse());
+      }
+
+      // ── 生產批次列表 ─────────────────────────────────────
+      case "batches": {
+        const batches = getSheetData(ss, "生產批次");
+        return ok(batches.filter(r => r["生產日期"]).reverse());
+      }
+
+      default:
+        return err("未知的 action：" + action);
     }
-    el.innerHTML = `<div class="list">
-      ${data.map(r => `
-        <div class="list-item">
-          <div class="list-item-left">
-            <div class="list-item-title">${r['批次編號'] || '—'} <span style="font-size:12px;color:var(--gray4)">${r['負責人'] || ''}</span></div>
-            <div class="list-item-sub">${fmtDate(r['生產日期'])}　${r['備註'] || ''}</div>
-          </div>
-          <div class="list-item-right">
-            <div class="list-item-amount">${r['產出瓶數'] || '—'} 瓶</div>
-            <div style="font-size:11px;color:var(--gray4)">每瓶 $${r['每瓶成本'] ? Math.round(parseFloat(r['每瓶成本'])) : '—'}</div>
-          </div>
-        </div>`).join('')}
-    </div>`;
   } catch(e) {
-    el.innerHTML = `<div class="empty"><div class="empty-icon">⚠️</div><div class="empty-text">${e.message}</div></div>`;
+    return err("讀取錯誤：" + e.message);
   }
 }
 
-// ── FAB → 對應當前頁面的新增動作 ────────────────────────────
-function openFab() {
-  setDefaultDates();
-  if (currentPage === 'expenses') openModal('modal-expense');
-  else if (currentPage === 'batches') openModal('modal-batch');
-  else if (currentPage === 'orders') openModal('modal-addorder');
-  else if (currentPage === 'stock') openModal('modal-addorder');
-}
+// ══════════════════════════════════════════════════════════════
+// POST：寫入資料
+// ══════════════════════════════════════════════════════════════
+function doPost(e) {
+  const ss = SpreadsheetApp.openById(SS_ID);
+  let body;
 
-// ── 表單送出 ─────────────────────────────────────────────────
-async function submitExpense() {
-  const btn = document.getElementById('exp-submit');
-  const amount = document.getElementById('exp-amount').value;
-  const desc = document.getElementById('exp-desc').value;
-  if (!amount || !desc) { showToast('請填入金額和說明'); return; }
-  btn.disabled = true; btn.textContent = '儲存中…';
   try {
-    await apiPost({ action: 'addExpense', data: {
-      date: document.getElementById('exp-date').value,
-      category: document.getElementById('exp-category').value,
-      description: desc, amount,
-      paymentMethod: document.getElementById('exp-payment').value,
-      supplier: document.getElementById('exp-supplier').value,
-      note: document.getElementById('exp-note').value
-    }});
-    showToast('支出已記錄');
-    closeModal('modal-expense');
-    loadExpenses();
-  } catch(e) { showToast('失敗：' + e.message); }
-  finally { btn.disabled = false; btn.textContent = '儲存支出'; }
-}
+    body = JSON.parse(e.postData.contents);
+  } catch(err) {
+    return response({ status: "error", message: "JSON 解析失敗" });
+  }
 
-async function submitBatch() {
-  const btn = document.getElementById('batch-submit');
-  const qty = document.getElementById('batch-qty').value;
-  if (!qty) { showToast('請填入產出瓶數'); return; }
-  btn.disabled = true; btn.textContent = '儲存中…';
+  const action = body.action || "";
+
   try {
-    await apiPost({ action: 'addBatch', data: {
-      date: document.getElementById('batch-date').value,
-      operator: document.getElementById('batch-operator').value,
-      qty, packagingCost: document.getElementById('batch-packaging').value,
-      note: document.getElementById('batch-note').value
-    }});
-    showToast('生產批次已記錄');
-    closeModal('modal-batch');
-    loadBatches();
-  } catch(e) { showToast('失敗：' + e.message); }
-  finally { btn.disabled = false; btn.textContent = '儲存批次'; }
+    switch (action) {
+
+      // ── 新增支出 ─────────────────────────────────────────
+      case "addExpense": {
+        const ws = ss.getSheetByName("支出");
+        const d  = body.data;
+        ws.appendRow([
+          d.date, d.category, d.description,
+          parseFloat(d.amount) || 0,
+          d.paymentMethod, d.supplier,
+          d.batchId || "", d.receipt || "", d.note || ""
+        ]);
+        return ok({ message: "支出已新增" });
+      }
+
+      // ── 更新訂單狀態 ─────────────────────────────────────
+      case "updateOrderStatus": {
+        const ws      = ss.getSheetByName("訂單");
+        const data    = ws.getDataRange().getValues();
+        const orderId = body.orderId;
+        const status  = body.status;
+        const trackNo = body.trackingNo || "";
+        const shipDate = body.shipDate  || "";
+
+        for (let i = 2; i < data.length; i++) {
+          if (data[i][0] === orderId) {
+            ws.getRange(i+1, 20).setValue(status);       // T 訂單狀態
+            if (trackNo)  ws.getRange(i+1, 21).setValue(trackNo);  // U 物流單號
+            if (shipDate) ws.getRange(i+1, 22).setValue(shipDate); // V 寄件日期
+            return ok({ message: "訂單狀態已更新", orderId, status });
+          }
+        }
+        return err("找不到訂單：" + orderId);
+      }
+
+      // ── 更新收款狀態 ─────────────────────────────────────
+      case "updatePayment": {
+        const ws      = ss.getSheetByName("訂單");
+        const data    = ws.getDataRange().getValues();
+        const orderId = body.orderId;
+
+        for (let i = 2; i < data.length; i++) {
+          if (data[i][0] === orderId) {
+            ws.getRange(i+1, 18).setValue(body.paymentStatus); // R 收款狀態
+            ws.getRange(i+1, 17).setValue(body.paymentMethod); // Q 收款方式
+            if (body.paymentDate) ws.getRange(i+1, 19).setValue(body.paymentDate); // S 收款日期
+            return ok({ message: "收款狀態已更新" });
+          }
+        }
+        return err("找不到訂單：" + orderId);
+      }
+
+      // ── 新增生產批次 ─────────────────────────────────────
+      case "addBatch": {
+        const ws = ss.getSheetByName("生產批次");
+        const d  = body.data;
+
+        // 自動產生批次編號
+        const existing = ws.getDataRange().getValues();
+        const batchNum = existing.length - 1; // 扣掉標題和說明列
+        const batchId  = "批次" + String(batchNum).padStart(3, "0");
+
+        ws.appendRow([
+          batchId,
+          d.date, d.operator, d.qty,
+          3000, 20, 130, 190, 100, 90, 20, // 預設配方用量
+          "", // 原料總成本（公式計算）
+          parseFloat(d.packagingCost) || 0,
+          "", // 批次總成本（公式）
+          "", // 每瓶成本（公式）
+          d.note || ""
+        ]);
+        return ok({ message: "生產批次已新增", batchId });
+      }
+
+      // ── 更新原物料庫存數量 ───────────────────────────────
+      case "updateStock": {
+        const ws   = ss.getSheetByName("原物料庫存");
+        const data = ws.getDataRange().getValues();
+        const name = body.name;
+        const qty  = parseFloat(body.qty);
+
+        for (let i = 1; i < data.length; i++) {
+          if (data[i][0] === name) {
+            ws.getRange(i+1, 8).setValue(qty); // H 現有數量
+            return ok({ message: name + " 庫存已更新為 " + qty });
+          }
+        }
+        return err("找不到品項：" + name);
+      }
+
+      // ── 手動新增訂單（朋友介紹等）───────────────────────
+      case "addOrder": {
+        const ws = ss.getSheetByName("訂單");
+        const d  = body.data;
+
+        // 自動產生訂單編號
+        const existing = ws.getDataRange().getValues();
+        let maxNum = 0;
+        for (let i = 2; i < existing.length; i++) {
+          const id = existing[i][0];
+          if (id && id.startsWith("ORD-")) {
+            const n = parseInt(id.replace("ORD-", ""), 10);
+            if (!isNaN(n) && n > maxNum) maxNum = n;
+          }
+        }
+        const orderId    = "ORD-" + String(maxNum + 1).padStart(3, "0");
+        const qty        = parseInt(d.qty) || 0;
+        const unitPrice  = parseFloat(d.unitPrice) || UNIT_PRICE;
+        const amount     = qty * unitPrice;
+
+        ws.appendRow([
+          orderId,
+          d.date || new Date(),
+          d.source || "朋友介紹",
+          d.buyerName, d.buyerPhone,
+          d.email || "", d.lineName || "",
+          qty, unitPrice, amount,
+          d.delivery || "宅配到府",
+          d.recvName || d.buyerName,
+          d.recvPhone || d.buyerPhone,
+          d.address || "",
+          d.convBrand || "", d.convStore || "",
+          d.paymentMethod || "", "未付款", "",
+          "待確認", "", "", d.note || ""
+        ]);
+        return ok({ message: "訂單已新增", orderId, amount });
+      }
+
+      // ── 表單同步（保留原功能）───────────────────────────
+      case "syncForm": {
+        syncFormToOrders();
+        return ok({ message: "表單同步完成" });
+      }
+
+      default:
+        return err("未知的 action：" + action);
+    }
+  } catch(e) {
+    return err("寫入錯誤：" + e.message);
+  }
 }
 
-async function submitAddOrder() {
-  const btn = document.getElementById('ao-submit');
-  const name = document.getElementById('ao-name').value;
-  const qty  = document.getElementById('ao-qty').value;
-  if (!name || !qty) { showToast('請填入顧客姓名和數量'); return; }
-  btn.disabled = true; btn.textContent = '新增中…';
-  try {
-    const result = await apiPost({ action: 'addOrder', data: {
-      date: document.getElementById('ao-date').value,
-      source: document.getElementById('ao-source').value,
-      buyerName: name, buyerPhone: document.getElementById('ao-phone').value,
-      qty, unitPrice: parseFloat(document.getElementById('ao-price').value) || 220,
-      delivery: document.getElementById('ao-delivery').value,
-      address: document.getElementById('ao-address').value,
-      paymentMethod: document.getElementById('ao-payment').value,
-      lineName: document.getElementById('ao-line').value,
-      note: document.getElementById('ao-note').value
-    }});
-    showToast('訂單已新增：' + result.orderId);
-    closeModal('modal-addorder');
-    await loadOrders();
-    showPage('orders', document.querySelectorAll('.nav-item')[1]);
-  } catch(e) { showToast('失敗：' + e.message); }
-  finally { btn.disabled = false; btn.textContent = '新增訂單'; }
-}
-
-// ── 工具 ─────────────────────────────────────────────────────
-function fmt(n) {
-  const num = parseFloat(n);
-  if (isNaN(num)) return '—';
-  return num.toLocaleString('zh-TW');
-}
-
-function fmtDate(d) {
-  if (!d) return '—';
-  const dt = new Date(d);
-  if (isNaN(dt)) return String(d).substring(0,10);
-  return (dt.getMonth()+1) + '/' + dt.getDate();
-}
-
-function today() {
-  return new Date().toISOString().split('T')[0];
-}
-
-function setDefaultDates() {
-  const t = today();
-  ['exp-date','batch-date','ao-date'].forEach(id => {
-    const el = document.getElementById(id);
-    if (el && !el.value) el.value = t;
+// ══════════════════════════════════════════════════════════════
+// 工具函式
+// ══════════════════════════════════════════════════════════════
+function getSheetData(ss, sheetName) {
+  const ws = ss.getSheetByName(sheetName);
+  if (!ws) return [];
+  const data = ws.getDataRange().getValues();
+  if (data.length < 2) return [];
+  const headers = data[0];
+  return data.slice(1).map(row => {
+    const obj = {};
+    headers.forEach((h, i) => { obj[h] = row[i] !== undefined ? row[i] : ""; });
+    return obj;
   });
 }
 
-function statusBadge(s) {
-  return {
-    '待確認':'b-pending','已確認':'b-confirmed','備貨中':'b-packing',
-    '已出貨':'b-shipped','已送達':'b-done','已取消':'b-cancelled'
-  }[s] || 'b-pending';
+// ── 表單同步（從原 script 保留）─────────────────────────────
+function syncFormToOrders() {
+  const formSS   = SpreadsheetApp.openById(FORM_SHEET_ID);
+  const orderSS  = SpreadsheetApp.openById(SS_ID);
+  const formSheet  = formSS.getSheetByName(FORM_TAB_NAME);
+  const orderSheet = orderSS.getSheetByName("訂單");
+  if (!formSheet || !orderSheet) return;
+
+  const formData  = formSheet.getDataRange().getValues();
+  const orderData = orderSheet.getDataRange().getValues();
+
+  const existingTs = new Set();
+  for (let i = 2; i < orderData.length; i++) {
+    if (orderData[i][1]) existingTs.add(orderData[i][1].toString());
+  }
+
+  let maxNum = 0;
+  for (let i = 2; i < orderData.length; i++) {
+    const id = orderData[i][0];
+    if (id && id.startsWith("ORD-")) {
+      const n = parseInt(id.replace("ORD-", ""), 10);
+      if (!isNaN(n) && n > maxNum) maxNum = n;
+    }
+  }
+
+  for (let i = 1; i < formData.length; i++) {
+    const row = formData[i];
+    const ts  = row[0];
+    if (!ts || existingTs.has(ts.toString())) continue;
+
+    maxNum++;
+    const orderId = "ORD-" + String(maxNum).padStart(3, "0");
+    const qty     = parseInt(row[2]) || 0;
+    let delivery  = row[6] || "";
+    if (delivery.includes("宅配")) delivery = "宅配到府";
+    if (delivery.includes("超商")) delivery = "超商取貨";
+
+    orderSheet.appendRow([
+      orderId, ts, "Google表單",
+      row[3]||"", row[4]||"", row[1]||"", row[5]||"",
+      qty, UNIT_PRICE, qty * UNIT_PRICE,
+      delivery, row[7]||row[10]||"", row[8]||row[11]||"",
+      row[9]||"", row[12]||"", row[13]||"",
+      "", "未付款", "", "待確認", "", "",
+      row[15] ? "願意收到消息" : ""
+    ]);
+    existingTs.add(ts.toString());
+  }
 }
 
-function openModal(id) { document.getElementById(id).classList.add('open'); }
-function closeModal(id) { document.getElementById(id).classList.remove('open'); }
-
-// 點背景關閉
-document.querySelectorAll('.modal-bg').forEach(bg => {
-  bg.addEventListener('click', e => {
-    if (e.target === bg) bg.classList.remove('open');
+// ── 自動觸發器（執行一次即可）───────────────────────────────
+function createTrigger() {
+  ScriptApp.getProjectTriggers().forEach(t => {
+    if (t.getHandlerFunction() === "syncFormToOrders") ScriptApp.deleteTrigger(t);
   });
-});
-
-function showToast(msg) {
-  const t = document.getElementById('toast');
-  t.textContent = msg;
-  t.classList.add('show');
-  setTimeout(() => t.classList.remove('show'), 2500);
+  const formSS = SpreadsheetApp.openById(FORM_SHEET_ID);
+  ScriptApp.newTrigger("syncFormToOrders")
+    .forSpreadsheet(formSS).onFormSubmit().create();
+  Logger.log("觸發器設定完成");
 }
-
-// ── 初始載入 ─────────────────────────────────────────────────
-loadOverview();
-</script>
-</body>
-</html>
