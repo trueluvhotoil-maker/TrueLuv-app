@@ -516,6 +516,222 @@ nav{
   </div>
 </div>
 
+
+<!-- 編輯訂單 Modal -->
+<div class="modal-bg" id="modal-edit-order">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title">編輯訂單</div>
+    <input type="hidden" id="eo-id">
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label">下單日期</label>
+        <input class="form-input" type="date" id="eo-date">
+      </div>
+      <div class="form-group">
+        <label class="form-label">來源</label>
+        <select class="form-input form-select" id="eo-source">
+          <option>朋友介紹</option><option>Google表單</option><option>LINE官方帳號</option><option>市集現場</option><option>Instagram</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label">顧客姓名</label>
+        <input class="form-input" id="eo-name">
+      </div>
+      <div class="form-group">
+        <label class="form-label">手機</label>
+        <input class="form-input" type="tel" id="eo-phone">
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label">數量（瓶）</label>
+        <input class="form-input" type="number" id="eo-qty">
+      </div>
+      <div class="form-group">
+        <label class="form-label">單價（元）</label>
+        <input class="form-input" type="number" id="eo-price">
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label">配送方式</label>
+        <select class="form-input form-select" id="eo-delivery">
+          <option>宅配到府</option><option>超商取貨</option><option>面交</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">LINE名稱</label>
+        <input class="form-input" id="eo-line">
+      </div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">收件人姓名</label>
+      <input class="form-input" id="eo-recvname">
+    </div>
+    <div class="form-group">
+      <label class="form-label">收件人手機</label>
+      <input class="form-input" type="tel" id="eo-recvphone">
+    </div>
+    <div class="form-group">
+      <label class="form-label">地址</label>
+      <input class="form-input" id="eo-address">
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label">超商品牌</label>
+        <input class="form-input" id="eo-convbrand">
+      </div>
+      <div class="form-group">
+        <label class="form-label">門市店號</label>
+        <input class="form-input" id="eo-convstore">
+      </div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">備註</label>
+      <input class="form-input" id="eo-note">
+    </div>
+    <button class="btn-submit" id="eo-submit" onclick="submitEditOrder()">儲存修改</button>
+    <button class="btn-submit" style="background:none;color:var(--gray4);margin-top:8px" onclick="closeModal('modal-edit-order')">取消</button>
+  </div>
+</div>
+
+<!-- 編輯支出 Modal -->
+<div class="modal-bg" id="modal-edit-expense">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title">編輯支出</div>
+    <input type="hidden" id="ee-rowindex">
+    <div class="form-group">
+      <label class="form-label">日期</label>
+      <input class="form-input" type="date" id="ee-date">
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label">類別</label>
+        <select class="form-input form-select" id="ee-category">
+          <option>原物料採購</option><option>包裝材料</option><option>市集攤位費</option>
+          <option>運費／寄件</option><option>設備工具</option><option>行銷設計</option><option>雜支</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">金額（元）</label>
+        <input class="form-input" type="number" id="ee-amount">
+      </div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">項目說明</label>
+      <input class="form-input" id="ee-desc">
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label">付款方式</label>
+        <select class="form-input form-select" id="ee-payment">
+          <option>匯款</option><option>現金</option><option>信用卡</option><option>LINE Pay</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">供應商</label>
+        <input class="form-input" id="ee-supplier">
+      </div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">備註</label>
+      <input class="form-input" id="ee-note">
+    </div>
+    <button class="btn-submit" id="ee-submit" onclick="submitEditExpense()">儲存修改</button>
+    <button class="btn-submit" style="background:none;color:var(--gray4);margin-top:8px" onclick="closeModal('modal-edit-expense')">取消</button>
+  </div>
+</div>
+
+<!-- 編輯生產批次 Modal -->
+<div class="modal-bg" id="modal-edit-batch">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title">編輯生產批次</div>
+    <input type="hidden" id="eb-rowindex">
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label">生產日期</label>
+        <input class="form-input" type="date" id="eb-date">
+      </div>
+      <div class="form-group">
+        <label class="form-label">負責人</label>
+        <input class="form-input" id="eb-operator">
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label">產出瓶數</label>
+        <input class="form-input" type="number" id="eb-qty">
+      </div>
+      <div class="form-group">
+        <label class="form-label">包材成本（元）</label>
+        <input class="form-input" type="number" id="eb-packaging">
+      </div>
+    </div>
+    <div style="background:var(--gray1);border-radius:8px;padding:12px;margin-bottom:16px">
+      <div style="font-size:11px;font-weight:700;color:var(--gray4);margin-bottom:8px">配方用量</div>
+      <div class="form-row">
+        <div class="form-group" style="margin-bottom:8px"><label class="form-label" style="margin-bottom:4px">葵花油(ml)</label><input class="form-input" type="number" id="eb-oil"></div>
+        <div class="form-group" style="margin-bottom:8px"><label class="form-label" style="margin-bottom:4px">魔鬼椒粉(g)</label><input class="form-input" type="number" id="eb-devil"></div>
+        <div class="form-group" style="margin-bottom:8px"><label class="form-label" style="margin-bottom:4px">朝天椒粉(g)</label><input class="form-input" type="number" id="eb-facing"></div>
+        <div class="form-group" style="margin-bottom:8px"><label class="form-label" style="margin-bottom:4px">雞心椒粉(g)</label><input class="form-input" type="number" id="eb-heart"></div>
+        <div class="form-group" style="margin-bottom:8px"><label class="form-label" style="margin-bottom:4px">二荊條粉(g)</label><input class="form-input" type="number" id="eb-ejing"></div>
+        <div class="form-group" style="margin-bottom:8px"><label class="form-label" style="margin-bottom:4px">大紅袍花椒(g)</label><input class="form-input" type="number" id="eb-peppercorn"></div>
+        <div class="form-group" style="margin-bottom:0"><label class="form-label" style="margin-bottom:4px">匈牙利紅椒粉(g)</label><input class="form-input" type="number" id="eb-hungary"></div>
+      </div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">備註</label>
+      <input class="form-input" id="eb-note">
+    </div>
+    <button class="btn-submit" id="eb-submit" onclick="submitEditBatch()">儲存修改</button>
+    <button class="btn-submit" style="background:none;color:var(--gray4);margin-top:8px" onclick="closeModal('modal-edit-batch')">取消</button>
+  </div>
+</div>
+
+<!-- 編輯庫存品項 Modal -->
+<div class="modal-bg" id="modal-edit-stock">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title" id="es-title">編輯品項</div>
+    <input type="hidden" id="es-name">
+    <input type="hidden" id="es-idx">
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label">採購規格數量</label>
+        <input class="form-input" type="number" id="es-specqty" placeholder="例：300">
+      </div>
+      <div class="form-group">
+        <label class="form-label">採購價（元）</label>
+        <input class="form-input" type="number" id="es-price" placeholder="例：135">
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label">現有數量</label>
+        <input class="form-input" type="number" id="es-currentqty">
+      </div>
+      <div class="form-group">
+        <label class="form-label">安全庫存量</label>
+        <input class="form-input" type="number" id="es-safeqty">
+      </div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">供應商</label>
+      <input class="form-input" id="es-supplier">
+    </div>
+    <div class="form-group">
+      <label class="form-label">備註</label>
+      <input class="form-input" id="es-note">
+    </div>
+    <button class="btn-submit" id="es-submit" onclick="submitEditStock()">儲存修改</button>
+    <button class="btn-submit" style="background:none;color:var(--gray4);margin-top:8px" onclick="closeModal('modal-edit-stock')">取消</button>
+  </div>
+</div>
 <!-- Toast -->
 <div class="toast" id="toast"></div>
 
@@ -543,6 +759,235 @@ function showPage(id, el) {
   if (id === 'stock'    && stockData.length === 0)  loadStock();
   if (id === 'expenses') loadExpenses();
   if (id === 'batches')  loadBatches();
+}
+
+
+// ══════════════════════════════════════════════════════════════
+// 編輯功能
+// ══════════════════════════════════════════════════════════════
+
+// ── 編輯訂單 ─────────────────────────────────────────────────
+function openEditOrder(o) {
+  closeModal('modal-order');
+  document.getElementById('eo-id').value    = o['訂單編號'] || '';
+  document.getElementById('eo-date').value  = toDateInput(o['下單日期']);
+  setSelectValue('eo-source', o['來源管道']);
+  document.getElementById('eo-name').value      = o['訂購人姓名'] || '';
+  document.getElementById('eo-phone').value     = o['訂購人手機'] || '';
+  document.getElementById('eo-qty').value       = o['訂購數量（瓶）'] || o['訂購數量'] || '';
+  document.getElementById('eo-price').value     = o['單價'] || 220;
+  setSelectValue('eo-delivery', o['配送方式']);
+  document.getElementById('eo-line').value      = o['LINE名稱'] || '';
+  document.getElementById('eo-recvname').value  = o['收件人姓名'] || '';
+  document.getElementById('eo-recvphone').value = o['收件人手機'] || '';
+  document.getElementById('eo-address').value   = o['收件地址'] || '';
+  document.getElementById('eo-convbrand').value = o['超商品牌'] || '';
+  document.getElementById('eo-convstore').value = o['門市店號'] || '';
+  document.getElementById('eo-note').value      = o['備註'] || '';
+  openModal('modal-edit-order');
+}
+
+async function submitEditOrder() {
+  const btn = document.getElementById('eo-submit');
+  const orderId = document.getElementById('eo-id').value;
+  const qty = parseInt(document.getElementById('eo-qty').value) || 0;
+  if (!orderId || !qty) { showToast('請填入必要資料'); return; }
+  btn.disabled = true; btn.textContent = '儲存中…';
+  try {
+    await apiPost({ action: 'editOrder', orderId, data: {
+      date:      document.getElementById('eo-date').value,
+      source:    document.getElementById('eo-source').value,
+      buyerName: document.getElementById('eo-name').value,
+      buyerPhone:document.getElementById('eo-phone').value,
+      qty, unitPrice: parseFloat(document.getElementById('eo-price').value) || 220,
+      delivery:  document.getElementById('eo-delivery').value,
+      lineName:  document.getElementById('eo-line').value,
+      recvName:  document.getElementById('eo-recvname').value,
+      recvPhone: document.getElementById('eo-recvphone').value,
+      address:   document.getElementById('eo-address').value,
+      convBrand: document.getElementById('eo-convbrand').value,
+      convStore: document.getElementById('eo-convstore').value,
+      note:      document.getElementById('eo-note').value,
+    }});
+    showToast('訂單已更新');
+    closeModal('modal-edit-order');
+    await loadOrders();
+  } catch(e) { showToast('失敗：' + e.message); }
+  finally { btn.disabled = false; btn.textContent = '儲存修改'; }
+}
+
+// ── 編輯支出 ─────────────────────────────────────────────────
+let expenseDataCache = [];
+
+async function loadExpenses() {
+  const el = document.getElementById('expenses-content');
+  el.innerHTML = `<div class="loading"><div class="dot-loader"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div></div>`;
+  try {
+    const data = await apiGet('expenses');
+    expenseDataCache = data;
+    if (!data.length) {
+      el.innerHTML = `<div class="empty"><div class="empty-icon">💴</div><div class="empty-text">還沒有支出記錄</div></div>`;
+      return;
+    }
+    const now = new Date();
+    let monthTotal = 0;
+    data.forEach(r => {
+      const d = new Date(r['日期']);
+      if (d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear()) {
+        monthTotal += parseFloat(r['金額（元）']) || 0;
+      }
+    });
+    el.innerHTML = `
+      <div class="kpi full" style="margin-bottom:16px">
+        <div class="kpi-label">本月支出合計</div>
+        <div class="kpi-value">$${fmt(monthTotal)}</div>
+      </div>
+      <div class="sec-label">所有記錄</div>
+      <div class="list">
+        ${data.map((r, idx) => `
+          <div class="list-item" onclick="openEditExpense(${JSON.stringify(r).replace(/"/g,'&quot;')},${idx})">
+            <div class="list-item-left">
+              <div class="list-item-title">${r['項目說明'] || '—'}</div>
+              <div class="list-item-sub">${fmtDate(r['日期'])}　${r['類別'] || ''}　${r['供應商／對象'] || ''}</div>
+            </div>
+            <div style="display:flex;align-items:center;gap:10px">
+              <div class="list-item-amount">$${fmt(r['金額（元）'])}</div>
+              <span style="font-size:18px;color:var(--gray3)">›</span>
+            </div>
+          </div>`).join('')}
+      </div>`;
+  } catch(e) {
+    el.innerHTML = `<div class="empty"><div class="empty-icon">⚠️</div><div class="empty-text">${e.message}</div></div>`;
+  }
+}
+
+function openEditExpense(r, idx) {
+  document.getElementById('ee-rowindex').value = idx;
+  document.getElementById('ee-date').value     = toDateInput(r['日期']);
+  setSelectValue('ee-category', r['類別']);
+  document.getElementById('ee-amount').value   = r['金額（元）'] || '';
+  document.getElementById('ee-desc').value     = r['項目說明'] || '';
+  setSelectValue('ee-payment', r['付款方式']);
+  document.getElementById('ee-supplier').value = r['供應商／對象'] || '';
+  document.getElementById('ee-note').value     = r['備註'] || '';
+  openModal('modal-edit-expense');
+}
+
+async function submitEditExpense() {
+  const btn = document.getElementById('ee-submit');
+  const rowIndex = document.getElementById('ee-rowindex').value;
+  btn.disabled = true; btn.textContent = '儲存中…';
+  try {
+    await apiPost({ action: 'editExpense', rowIndex, data: {
+      date:          document.getElementById('ee-date').value,
+      category:      document.getElementById('ee-category').value,
+      description:   document.getElementById('ee-desc').value,
+      amount:        document.getElementById('ee-amount').value,
+      paymentMethod: document.getElementById('ee-payment').value,
+      supplier:      document.getElementById('ee-supplier').value,
+      note:          document.getElementById('ee-note').value,
+    }});
+    showToast('支出已更新');
+    closeModal('modal-edit-expense');
+    loadExpenses();
+  } catch(e) { showToast('失敗：' + e.message); }
+  finally { btn.disabled = false; btn.textContent = '儲存修改'; }
+}
+
+// ── 編輯生產批次 ─────────────────────────────────────────────
+function openEditBatch(r, idx) {
+  document.getElementById('eb-rowindex').value  = idx;
+  document.getElementById('eb-date').value      = toDateInput(r['生產日期']);
+  document.getElementById('eb-operator').value  = r['負責人'] || '';
+  document.getElementById('eb-qty').value       = r['產出瓶數'] || '';
+  document.getElementById('eb-packaging').value = r['包材成本'] || '';
+  document.getElementById('eb-oil').value       = r['葵花油(ml)'] || r['葵花油'] || 3000;
+  document.getElementById('eb-devil').value     = r['魔鬼椒粉(g)'] || r['魔鬼椒粉'] || 20;
+  document.getElementById('eb-facing').value    = r['朝天椒粉(g)'] || r['朝天椒粉'] || 130;
+  document.getElementById('eb-heart').value     = r['雞心椒粉(g)'] || r['雞心椒粉'] || 190;
+  document.getElementById('eb-ejing').value     = r['二荊條粉(g)'] || r['二荊條粉'] || 100;
+  document.getElementById('eb-peppercorn').value= r['大紅袍花椒(g)'] || r['大紅袍花椒'] || 90;
+  document.getElementById('eb-hungary').value   = r['匈牙利紅椒粉(g)'] || r['匈牙利紅椒粉'] || 20;
+  document.getElementById('eb-note').value      = r['備註'] || '';
+  openModal('modal-edit-batch');
+}
+
+async function submitEditBatch() {
+  const btn = document.getElementById('eb-submit');
+  btn.disabled = true; btn.textContent = '儲存中…';
+  try {
+    await apiPost({ action: 'editBatch', rowIndex: document.getElementById('eb-rowindex').value, data: {
+      date:         document.getElementById('eb-date').value,
+      operator:     document.getElementById('eb-operator').value,
+      qty:          document.getElementById('eb-qty').value,
+      packagingCost:document.getElementById('eb-packaging').value,
+      oil:          document.getElementById('eb-oil').value,
+      devil:        document.getElementById('eb-devil').value,
+      facing:       document.getElementById('eb-facing').value,
+      heart:        document.getElementById('eb-heart').value,
+      ejing:        document.getElementById('eb-ejing').value,
+      peppercorn:   document.getElementById('eb-peppercorn').value,
+      hungary:      document.getElementById('eb-hungary').value,
+      note:         document.getElementById('eb-note').value,
+    }});
+    showToast('生產批次已更新');
+    closeModal('modal-edit-batch');
+    loadBatches();
+  } catch(e) { showToast('失敗：' + e.message); }
+  finally { btn.disabled = false; btn.textContent = '儲存修改'; }
+}
+
+// ── 編輯庫存品項 ─────────────────────────────────────────────
+function openEditStock(s, idx) {
+  document.getElementById('es-title').textContent = '編輯：' + s['品項名稱'];
+  document.getElementById('es-name').value      = s['品項名稱'] || '';
+  document.getElementById('es-idx').value       = idx;
+  document.getElementById('es-specqty').value   = s['採購規格\n（每包/瓶數量）'] || s['採購規格'] || '';
+  document.getElementById('es-price').value     = s['採購價（元）'] || s['採購價'] || '';
+  document.getElementById('es-currentqty').value= s['現有數量'] || '';
+  document.getElementById('es-safeqty').value   = s['安全庫存量'] || '';
+  document.getElementById('es-supplier').value  = s['供應商'] || '';
+  document.getElementById('es-note').value      = s['備註'] || '';
+  openModal('modal-edit-stock');
+}
+
+async function submitEditStock() {
+  const btn = document.getElementById('es-submit');
+  const name = document.getElementById('es-name').value;
+  btn.disabled = true; btn.textContent = '儲存中…';
+  try {
+    await apiPost({ action: 'editStock', name, data: {
+      specQty:    document.getElementById('es-specqty').value,
+      price:      document.getElementById('es-price').value,
+      currentQty: document.getElementById('es-currentqty').value,
+      safeQty:    document.getElementById('es-safeqty').value,
+      supplier:   document.getElementById('es-supplier').value,
+      note:       document.getElementById('es-note').value,
+    }});
+    const idx = parseInt(document.getElementById('es-idx').value);
+    showToast(name + ' 已更新');
+    closeModal('modal-edit-stock');
+    await loadStock();
+  } catch(e) { showToast('失敗：' + e.message); }
+  finally { btn.disabled = false; btn.textContent = '儲存修改'; }
+}
+
+// ── 工具：日期格式轉換 ───────────────────────────────────────
+function toDateInput(val) {
+  if (!val) return '';
+  const d = new Date(val);
+  if (isNaN(d)) return String(val).substring(0, 10);
+  return d.toISOString().split('T')[0];
+}
+
+function setSelectValue(id, val) {
+  const sel = document.getElementById(id);
+  if (!sel || !val) return;
+  for (let i = 0; i < sel.options.length; i++) {
+    if (sel.options[i].value === val || sel.options[i].text === val) {
+      sel.selectedIndex = i; return;
+    }
+  }
 }
 
 // ── 載入全部 ─────────────────────────────────────────────────
@@ -707,6 +1152,10 @@ function openOrder(o) {
         onclick="markPaid('${o['訂單編號']}','${o['收款狀態']}')">
         ${o['收款狀態']==='已付款'?'已收款 ✓':'標記已收款'}
       </button>
+      <button class="btn-submit" style="flex:1;background:var(--gray5)"
+        onclick="openEditOrder(${JSON.stringify(o).replace(/"/g,'&quot;')})">
+        編輯訂單
+      </button>
     </div>
     ${o['物流單號'] ? '' : `
     <div style="margin-top:10px">
@@ -797,6 +1246,7 @@ function renderStock() {
             <button class="qty-btn" onclick="changeQty(${globalIdx},1)">＋</button>
           </div>
           <button onclick="saveQty(${globalIdx})" style="background:var(--black);color:var(--white);border:none;border-radius:6px;padding:6px 10px;font-size:12px;font-weight:700;cursor:pointer">存</button>
+          <button onclick="openEditStock(${JSON.stringify(s).replace(/'/g,'\\'').replace(/"/g,'&quot;')},${globalIdx})" style="background:var(--gray2);color:var(--black);border:none;border-radius:6px;padding:6px 10px;font-size:12px;font-weight:700;cursor:pointer">資料</button>
         </div>
       </div>`;
     }).join('');
@@ -824,45 +1274,7 @@ async function saveQty(idx) {
   } catch(e) { showToast('更新失敗：' + e.message); }
 }
 
-// ── 支出 ─────────────────────────────────────────────────────
-async function loadExpenses() {
-  const el = document.getElementById('expenses-content');
-  el.innerHTML = `<div class="loading"><div class="dot-loader"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div></div>`;
-  try {
-    const data = await apiGet('expenses');
-    if (!data.length) {
-      el.innerHTML = `<div class="empty"><div class="empty-icon">💴</div><div class="empty-text">還沒有支出記錄</div></div>`;
-      return;
-    }
-    // 本月合計
-    const now = new Date();
-    let monthTotal = 0;
-    data.forEach(r => {
-      const d = new Date(r['日期']);
-      if (d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear()) {
-        monthTotal += parseFloat(r['金額（元）']) || 0;
-      }
-    });
-    el.innerHTML = `
-      <div class="kpi full" style="margin-bottom:16px">
-        <div class="kpi-label">本月支出合計</div>
-        <div class="kpi-value">$${fmt(monthTotal)}</div>
-      </div>
-      <div class="sec-label">所有記錄</div>
-      <div class="list">
-        ${data.map(r => `
-          <div class="list-item">
-            <div class="list-item-left">
-              <div class="list-item-title">${r['項目說明'] || '—'}</div>
-              <div class="list-item-sub">${fmtDate(r['日期'])}　${r['類別'] || ''}　${r['供應商／對象'] || ''}</div>
-            </div>
-            <div class="list-item-amount">$${fmt(r['金額（元）'])}</div>
-          </div>`).join('')}
-      </div>`;
-  } catch(e) {
-    el.innerHTML = `<div class="empty"><div class="empty-icon">⚠️</div><div class="empty-text">${e.message}</div></div>`;
-  }
-}
+// loadExpenses 已移至編輯功能區塊
 
 // ── 生產批次 ─────────────────────────────────────────────────
 async function loadBatches() {
@@ -875,8 +1287,8 @@ async function loadBatches() {
       return;
     }
     el.innerHTML = `<div class="list">
-      ${data.map(r => `
-        <div class="list-item">
+      ${data.map((r, idx) => `
+        <div class="list-item" onclick="openEditBatch(${JSON.stringify(r).replace(/"/g,'&quot;')},${idx})">
           <div class="list-item-left">
             <div class="list-item-title">${r['批次編號'] || '—'} <span style="font-size:12px;color:var(--gray4)">${r['負責人'] || ''}</span></div>
             <div class="list-item-sub">${fmtDate(r['生產日期'])}　${r['備註'] || ''}</div>
