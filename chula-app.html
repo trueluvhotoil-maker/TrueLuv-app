@@ -1036,12 +1036,12 @@ async function loadOverview() {
         '<div class="kpi-sub-inv">收 $' + fmt(d.monthRevenue) + '　支 $' + fmt(d.monthExpense) + '</div>' +
       '</div>' +
       '<div class="kpi-row">' +
-        '<div class="card kpi-sm" onclick="showPage('orders',document.querySelectorAll('.nav-item')[1]);filterOrders('')" style="cursor:pointer">' +
+        '<div class="card kpi-sm" onclick="showPage(&apos;orders&apos;,document.querySelectorAll(&apos;.nav-item&apos;)[1]);filterOrders(&apos;&apos;)" style="cursor:pointer">' +
           '<div class="kpi-label">本月訂單</div>' +
           '<div class="kpi-num">' + d.monthOrders + '</div>' +
           '<div class="kpi-sub">筆</div>' +
         '</div>' +
-        '<div class="card kpi-sm" onclick="showPage('orders',document.querySelectorAll('.nav-item')[1]);filterOrders('待確認')" style="cursor:pointer">' +
+        '<div class="card kpi-sm" onclick="showPage(&apos;orders&apos;,document.querySelectorAll(&apos;.nav-item&apos;)[1]);filterOrders(&apos;待確認&apos;)" style="cursor:pointer">' +
           '<div class="kpi-label">待處理</div>' +
           '<div class="kpi-num" style="color:' + (d.pendingCount > 0 ? 'var(--accent)' : 'var(--ink)') + '">' + d.pendingCount + '</div>' +
           '<div class="kpi-sub">筆訂單</div>' +
