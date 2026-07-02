@@ -1013,67 +1013,61 @@ async function loadOverview() {
     const profit = d.monthProfit;
     const lowItems = d.lowStock || [];
 
-    let warnHtml = '';
-    if (lowItems.length > 0) {
-      warnHtml = '<div class="sec">庫存警示</div>' +
-        lowItems.map(s =>
-          '<div class="warn-banner">' +
-            '<div class="warn-banner-dot"></div>' +
-            '<div class="warn-banner-text">' + s.name + '　' +
-              (s.qty == 0 ? '已缺貨' : '現有 ' + s.qty + '，低於安全庫存') +
-            '</div>' +
-          '</div>'
-        ).join('');
-    }
+    // 用 innerHTML 直接組，避免字串拼接裡的跳脫問題
+    const html2 = [
+      '<div class="sec">本月財務</div>',
+      '<div class="card-dark">',
+        '<div class="kpi-label-inv">結餘</div>',
+        '<div class="kpi-num-inv" style="font-size:42px;letter-spacing:-2px;margin:4px 0 2px">$' + fmt(profit) + '</div>',
+        '<div class="kpi-sub-inv">收 $' + fmt(d.monthRevenue) + '　支 $' + fmt(d.monthExpense) + '</div>',
+      '</div>',
+      '<div class="kpi-row">',
+        '<div class="card kpi-sm" id="ov-orders-btn" style="cursor:pointer">',
+          '<div class="kpi-label">本月訂單</div>',
+          '<div class="kpi-num">' + d.monthOrders + '</div>',
+          '<div class="kpi-sub">筆</div>',
+        '</div>',
+        '<div class="card kpi-sm" id="ov-pending-btn" style="cursor:pointer">',
+          '<div class="kpi-label">待處理</div>',
+          '<div class="kpi-num" style="color:' + (d.pendingCount > 0 ? 'var(--accent)' : 'var(--ink)') + '">' + d.pendingCount + '</div>',
+          '<div class="kpi-sub">筆訂單</div>',
+        '</div>',
+      '</div>',
+      lowItems.length > 0
+        ? '<div class="sec">庫存警示</div>' + lowItems.map(function(s) {
+            return '<div class="warn-banner"><div class="warn-banner-dot"></div><div class="warn-banner-text">' +
+              s.name + '　' + (s.qty == 0 ? '已缺貨' : '現有 ' + s.qty + '，低於安全庫存') + '</div></div>';
+          }).join('')
+        : '',
+      '<div class="sec">本月收支</div>',
+      '<div class="card">',
+        '<div class="profit-row"><span class="profit-label">收入</span><span class="profit-val" style="color:var(--green)">$' + fmt(d.monthRevenue) + '</span></div>',
+        '<div class="profit-row"><span class="profit-label">支出</span><span class="profit-val" style="color:var(--accent)">$' + fmt(d.monthExpense) + '</span></div>',
+        '<div class="profit-row" style="border-bottom:none"><span class="profit-label" style="font-weight:700">結餘</span><span class="profit-val" style="color:' + (profit >= 0 ? 'var(--green)' : 'var(--accent)') + ';font-size:17px">$' + fmt(profit) + '</span></div>',
+      '</div>',
+      '<div style="font-size:10px;color:var(--ink3);text-align:right;margin-top:8px">' + new Date().toLocaleString('zh-TW',{month:'numeric',day:'numeric',hour:'2-digit',minute:'2-digit'}) + ' 更新</div>'
+    ].join('');
 
-    el.innerHTML =
-      '<div class="sec">本月財務</div>' +
-      '<div class="card-dark">' +
-        '<div class="kpi-label-inv">結餘</div>' +
-        '<div class="kpi-num-inv" style="font-size:42px;letter-spacing:-2px;margin:4px 0 2px">' +
-          '$' + fmt(profit) +
-        '</div>' +
-        '<div class="kpi-sub-inv">收 $' + fmt(d.monthRevenue) + '　支 $' + fmt(d.monthExpense) + '</div>' +
-      '</div>' +
-      '<div class="kpi-row">' +
-        '<div class="card kpi-sm" onclick="showPage(\'orders\',document.querySelectorAll(\'.nav-item\')[1]);filterOrders(\'\')" style="cursor:pointer">' +
-          '<div class="kpi-label">本月訂單</div>' +
-          '<div class="kpi-num">' + d.monthOrders + '</div>' +
-          '<div class="kpi-sub">筆</div>' +
-        '</div>' +
-        '<div class="card kpi-sm" onclick="showPage(\'orders\',document.querySelectorAll(\'.nav-item\')[1]);filterOrders(\'待確認\')" style="cursor:pointer">' +
-          '<div class="kpi-label">待處理</div>' +
-          '<div class="kpi-num" style="color:' + (d.pendingCount > 0 ? 'var(--accent)' : 'var(--ink)') + '">' + d.pendingCount + '</div>' +
-          '<div class="kpi-sub">筆訂單</div>' +
-        '</div>' +
-      '</div>' +
-      warnHtml +
-      '<div class="sec">最近收支</div>' +
-      '<div class="card">' +
-        '<div class="profit-row">' +
-          '<span class="profit-label">總收入</span>' +
-          '<span class="profit-val" style="color:var(--green)">$' + fmt(d.monthRevenue) + '</span>' +
-        '</div>' +
-        '<div class="profit-row">' +
-          '<span class="profit-label">總支出</span>' +
-          '<span class="profit-val" style="color:var(--accent)">$' + fmt(d.monthExpense) + '</span>' +
-        '</div>' +
-        '<div class="profit-row" style="border-bottom:none">' +
-          '<span class="profit-label" style="font-weight:700">結餘</span>' +
-          '<span class="profit-val" style="color:' + (profit >= 0 ? 'var(--green)' : 'var(--accent)') + ';font-size:17px">$' + fmt(profit) + '</span>' +
-        '</div>' +
-      '</div>' +
-      '<div style="font-size:10px;color:var(--ink3);text-align:right;margin-top:8px">' +
-        new Date().toLocaleString('zh-TW',{month:'numeric',day:'numeric',hour:'2-digit',minute:'2-digit'}) + ' 更新' +
-      '</div>';
+    el.innerHTML = html2;
+
+    // 用 addEventListener 綁定點擊，避免 onclick 字串跳脫問題
+    var ordBtn = document.getElementById('ov-orders-btn');
+    if (ordBtn) ordBtn.addEventListener('click', function() {
+      showPage('orders', document.querySelectorAll('.nav-item')[1]);
+      filterOrders('');
+    });
+    var pendBtn = document.getElementById('ov-pending-btn');
+    if (pendBtn) pendBtn.addEventListener('click', function() {
+      showPage('orders', document.querySelectorAll('.nav-item')[1]);
+      filterOrders('待確認');
+    });
+
   } catch(e) {
-    el.innerHTML = '<div class="empty"><div class="empty-icon">⚠️</div>' +
-      '<div class="empty-title">連線失敗</div>' +
-      '<div class="empty-desc">' + e.message + '</div></div>';
+    el.innerHTML = '<div class="empty"><div class="empty-icon">⚠️</div><div class="empty-title">連線失敗</div><div class="empty-desc">' + e.message + '</div></div>';
   }
 }
 
-// ── 訂單 ─────────────────────────────────────────────────────
+
 async function loadOrders() {
   const el = document.getElementById('orders-content');
   el.innerHTML = `<div class="loading"><div class="dot-loader"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div></div>`;
