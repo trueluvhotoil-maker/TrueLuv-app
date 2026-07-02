@@ -1001,15 +1001,26 @@ async function loadAll() {
 
 // ── API 呼叫 ─────────────────────────────────────────────────
 async function apiGet(action) {
-  const r = await fetch(`${API}?action=${action}`);
-  const j = await r.json();
-  if (j.status !== 'ok') throw new Error(j.message);
-  return j.data;
+  return new Promise((resolve, reject) => {
+    const cbName = '_cb_' + Date.now();
+    const script = document.createElement('script');
+    window[cbName] = (j) => {
+      delete window[cbName];
+      document.body.removeChild(script);
+      if (j.status !== 'ok') reject(new Error(j.message));
+      else resolve(j.data);
+    };
+    script.src = `${API}?action=${action}&callback=${cbName}`;
+    script.onerror = () => { delete window[cbName]; reject(new Error('網路錯誤')); };
+    document.body.appendChild(script);
+  });
 }
 
 async function apiPost(body) {
+  // POST 改用 fetch + redirect follow（Apps Script 支援）
   const r = await fetch(API, {
     method: 'POST',
+    headers: { 'Content-Type': 'text/plain' },
     body: JSON.stringify(body)
   });
   const j = await r.json();
