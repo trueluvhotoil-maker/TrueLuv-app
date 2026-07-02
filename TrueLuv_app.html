@@ -1,0 +1,1516 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>初辣</title>
+<style>
+/* ── 設計 Token ───────────────────────────────────────────── */
+:root {
+  --bg:      #F5F3F0;
+  --surface: #FFFFFF;
+  --ink:     #1A1A1A;
+  --ink2:    #6B6B6B;
+  --ink3:    #B0A99F;
+  --border:  #E8E4DF;
+  --black:   #1A1A1A;
+  --dim:     #2D2D2D;
+  --gold:    #C8A96E;
+  --green:   #2D5A3D;
+  --green-l: #EAF2EE;
+  --warn:    #8B4513;
+  --warn-l:  #FDF0E6;
+  --r: 16px;
+  --rs: 10px;
+}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{height:100%}
+body{
+  background:var(--bg);
+  color:var(--ink);
+  font-family:-apple-system,'Helvetica Neue',sans-serif;
+  min-height:100vh;
+  padding-bottom:72px;
+  -webkit-font-smoothing:antialiased;
+}
+
+/* ── HEADER ───────────────────────────────────────────────── */
+.hd{
+  padding:24px 20px 16px;
+  display:flex;align-items:center;justify-content:space-between;
+  background:var(--bg);
+  position:sticky;top:0;z-index:50;
+}
+.wm{
+  font-size:26px;font-weight:900;
+  letter-spacing:-1.5px;color:var(--ink);
+  display:flex;align-items:baseline;gap:1px;
+}
+.wm-dot{
+  width:7px;height:7px;border-radius:50%;
+  background:var(--gold);margin-left:3px;margin-bottom:2px;
+}
+.sync{
+  font-size:11px;font-weight:600;color:var(--ink2);
+  background:var(--surface);border:1px solid var(--border);
+  border-radius:20px;padding:6px 14px;cursor:pointer;
+  font-family:inherit;transition:background .15s;
+}
+.sync:active{background:var(--border)}
+.spin{animation:spin .6s linear infinite;display:inline-block}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* ── NAV ──────────────────────────────────────────────────── */
+.nav{
+  position:fixed;bottom:0;left:0;right:0;
+  background:var(--surface);
+  border-top:1px solid var(--border);
+  display:flex;
+  z-index:100;
+  padding-bottom:env(safe-area-inset-bottom);
+}
+.ni{
+  flex:1;padding:10px 4px 11px;
+  display:flex;flex-direction:column;align-items:center;gap:3px;
+  border:none;background:none;cursor:pointer;
+  font-size:9px;font-weight:600;color:var(--ink3);
+  font-family:inherit;letter-spacing:.5px;text-transform:uppercase;
+  transition:color .15s;
+}
+.ni.on{color:var(--ink);font-weight:800}
+.ni-ico{font-size:20px;line-height:1}
+
+/* ── PAGE ─────────────────────────────────────────────────── */
+.pg{display:none;padding:0 16px 20px}
+.pg.on{display:block}
+
+/* ── LABEL ────────────────────────────────────────────────── */
+.lbl{
+  font-size:9px;font-weight:800;letter-spacing:2px;
+  text-transform:uppercase;color:var(--ink3);
+  margin:20px 0 10px;
+}
+.lbl:first-child{margin-top:4px}
+
+/* ── HERO CARD（黑底大數字）──────────────────────────────── */
+.hero{
+  background:var(--ink);
+  border-radius:var(--r);
+  padding:24px 22px;
+  margin-bottom:12px;
+  position:relative;
+  overflow:hidden;
+}
+.hero::after{
+  content:'';
+  position:absolute;right:-20px;top:-20px;
+  width:120px;height:120px;border-radius:50%;
+  background:rgba(200,169,110,.08);
+  pointer-events:none;
+}
+.hero-lbl{font-size:10px;font-weight:700;letter-spacing:1.5px;color:rgba(255,255,255,.4);text-transform:uppercase;margin-bottom:8px}
+.hero-num{font-size:48px;font-weight:900;letter-spacing:-3px;color:#fff;line-height:1;margin-bottom:6px}
+.hero-sub{font-size:12px;color:rgba(255,255,255,.4)}
+.hero-sub span{color:rgba(255,255,255,.7);font-weight:600}
+
+/* ── STAT ROW（兩欄小卡）────────────────────────────────── */
+.stat-row{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px}
+.stat{
+  background:var(--surface);border-radius:var(--r);
+  padding:16px 18px;cursor:pointer;
+  border:1px solid var(--border);
+  transition:border-color .15s;
+}
+.stat:active{border-color:var(--ink)}
+.stat-lbl{font-size:9px;font-weight:800;letter-spacing:1.5px;text-transform:uppercase;color:var(--ink3);margin-bottom:8px}
+.stat-num{font-size:32px;font-weight:900;letter-spacing:-2px;line-height:1;color:var(--ink)}
+.stat-num.hi{color:var(--warn)}
+.stat-unit{font-size:11px;color:var(--ink3);margin-top:4px}
+
+/* ── SUMMARY CARD ────────────────────────────────────────── */
+.sum-card{
+  background:var(--surface);border-radius:var(--r);
+  border:1px solid var(--border);
+  overflow:hidden;margin-bottom:12px;
+}
+.sum-row{
+  display:flex;justify-content:space-between;align-items:center;
+  padding:14px 18px;border-bottom:1px solid var(--border);
+}
+.sum-row:last-child{border-bottom:none}
+.sum-key{font-size:12px;color:var(--ink2)}
+.sum-val{font-size:14px;font-weight:800;letter-spacing:-.3px}
+.sum-val.pos{color:var(--green)}
+.sum-val.neg{color:var(--warn)}
+
+/* ── WARN LIST ───────────────────────────────────────────── */
+.warn-item{
+  background:var(--warn-l);border-radius:var(--rs);
+  padding:11px 14px;margin-bottom:6px;
+  display:flex;align-items:center;gap:10px;
+}
+.warn-pip{width:6px;height:6px;border-radius:50%;background:var(--warn);flex-shrink:0}
+.warn-txt{font-size:12px;font-weight:600;color:var(--warn)}
+
+/* ── LIST CARD ───────────────────────────────────────────── */
+.lc{
+  background:var(--surface);border-radius:var(--r);
+  border:1px solid var(--border);overflow:hidden;
+  margin-bottom:12px;
+}
+.lr{
+  padding:14px 18px;
+  display:flex;align-items:center;
+  border-bottom:1px solid var(--border);
+  cursor:pointer;transition:background .1s;
+}
+.lr:last-child{border-bottom:none}
+.lr:active{background:var(--bg)}
+.lr-l{flex:1;min-width:0}
+.lr-title{
+  font-size:15px;font-weight:700;margin-bottom:3px;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+}
+.lr-sub{font-size:11px;color:var(--ink3)}
+.lr-r{display:flex;flex-direction:column;align-items:flex-end;gap:5px;margin-left:14px}
+.lr-amt{font-size:16px;font-weight:900;letter-spacing:-.5px}
+.chev{font-size:14px;color:var(--border);margin-left:4px}
+
+/* ── BADGE ────────────────────────────────────────────────── */
+.bd{
+  display:inline-flex;align-items:center;
+  padding:3px 9px;border-radius:20px;
+  font-size:10px;font-weight:700;letter-spacing:.3px;
+}
+.b-pending{background:#FEF3C7;color:#92400E}
+.b-confirmed{background:#EEF2FF;color:#3730A3}
+.b-packing{background:#E0F2FE;color:#0369A1}
+.b-shipped{background:#F0F9FF;color:#0C4A6E}
+.b-done{background:var(--green-l);color:var(--green)}
+.b-cancelled{background:var(--bg);color:var(--ink3);border:1px solid var(--border)}
+.b-unpaid{background:#FEF3C7;color:#92400E}
+.b-paid{background:var(--green-l);color:var(--green)}
+.b-warn{background:var(--warn-l);color:var(--warn)}
+.b-ok{background:var(--green-l);color:var(--green)}
+.b-low{background:#FEF3C7;color:#92400E}
+
+/* ── FILTER ──────────────────────────────────────────────── */
+.fil{
+  display:flex;gap:6px;overflow-x:auto;padding:0 0 14px;
+  scrollbar-width:none;
+}
+.fil::-webkit-scrollbar{display:none}
+.fp{
+  padding:7px 16px;border-radius:20px;
+  border:1.5px solid var(--border);background:var(--surface);
+  color:var(--ink2);font-size:11px;font-weight:700;
+  cursor:pointer;white-space:nowrap;font-family:inherit;
+  transition:all .15s;letter-spacing:.3px;
+}
+.fp.on{border-color:var(--ink);background:var(--ink);color:#fff}
+
+/* ── STOCK ───────────────────────────────────────────────── */
+.sk{
+  background:var(--surface);border-radius:var(--r);
+  border:1px solid var(--border);padding:16px 18px;
+  margin-bottom:8px;
+}
+.sk-top{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:14px}
+.sk-name{font-size:15px;font-weight:800;margin-bottom:3px}
+.sk-meta{font-size:11px;color:var(--ink3)}
+.sk-ctrl{display:flex;align-items:center;gap:0;justify-content:center;margin-bottom:10px}
+.qb{
+  width:36px;height:36px;border-radius:50%;
+  border:1.5px solid var(--border);background:var(--bg);
+  font-size:18px;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;
+  font-family:inherit;transition:all .1s;
+}
+.qb:active{background:var(--border)}
+.qi{
+  width:56px;text-align:center;background:none;border:none;
+  font-size:18px;font-weight:900;font-family:inherit;color:var(--ink);outline:none;
+  letter-spacing:-1px;
+}
+.sk-btns{display:grid;grid-template-columns:2fr 1fr;gap:6px}
+.sk-btn{
+  padding:9px;border-radius:var(--rs);border:none;
+  font-size:11px;font-weight:800;font-family:inherit;cursor:pointer;
+  letter-spacing:.3px;
+}
+.sk-save{background:var(--ink);color:#fff}
+.sk-edit{background:var(--bg);color:var(--ink2);border:1px solid var(--border)}
+
+/* ── FAB ──────────────────────────────────────────────────── */
+.fab{
+  position:fixed;bottom:82px;right:18px;
+  width:52px;height:52px;border-radius:50%;
+  background:var(--ink);color:#fff;
+  border:none;font-size:22px;cursor:pointer;
+  box-shadow:0 6px 24px rgba(26,26,26,.25);
+  display:flex;align-items:center;justify-content:center;
+  z-index:99;transition:transform .1s,box-shadow .1s;font-family:inherit;
+}
+.fab:active{transform:scale(.91);box-shadow:0 3px 12px rgba(26,26,26,.2)}
+.fab.hid{display:none}
+
+/* ── MODAL ────────────────────────────────────────────────── */
+.mb{
+  position:fixed;inset:0;background:rgba(0,0,0,.45);
+  z-index:200;display:none;align-items:flex-end;
+  backdrop-filter:blur(3px);-webkit-backdrop-filter:blur(3px);
+}
+.mb.on{display:flex}
+.mo{
+  background:var(--surface);width:100%;
+  border-radius:22px 22px 0 0;
+  max-height:92vh;overflow-y:auto;
+  padding:14px 20px 48px;
+}
+.mh{width:32px;height:3px;background:var(--border);border-radius:2px;margin:0 auto 22px}
+.mt{font-size:20px;font-weight:900;letter-spacing:-.8px;margin-bottom:20px}
+
+/* ── FORM ─────────────────────────────────────────────────── */
+.fg{margin-bottom:14px}
+.fl{font-size:9px;font-weight:800;letter-spacing:1.5px;text-transform:uppercase;color:var(--ink3);margin-bottom:6px;display:block}
+.fi{width:100%;background:var(--bg);border:1.5px solid transparent;border-radius:var(--rs);padding:13px 14px;font-size:15px;font-family:inherit;color:var(--ink);outline:none;transition:border-color .15s;appearance:none}
+.fi:focus{border-color:var(--ink);background:var(--surface)}
+.fi-s{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%23B0A99F'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 14px center;padding-right:36px}
+.f2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.recipe-box{background:var(--bg);border-radius:var(--rs);padding:14px;margin-bottom:14px}
+.recipe-lbl{font-size:9px;font-weight:800;letter-spacing:1.5px;text-transform:uppercase;color:var(--ink3);margin-bottom:10px}
+
+/* ── BUTTON ──────────────────────────────────────────────── */
+.btn{width:100%;border:none;border-radius:var(--rs);padding:15px;font-size:15px;font-weight:800;font-family:inherit;cursor:pointer;transition:opacity .15s;letter-spacing:-.2px}
+.btn:active{opacity:.8}
+.btn:disabled{opacity:.4;cursor:not-allowed}
+.btn-blk{background:var(--ink);color:#fff;margin-top:10px}
+.btn-dim{background:var(--dim);color:#fff;margin-top:10px}
+.btn-ghost{background:none;color:var(--ink3);margin-top:6px;font-size:14px}
+
+/* ── ORDER DETAIL ROWS ───────────────────────────────────── */
+.dr{display:flex;justify-content:space-between;align-items:flex-start;padding:13px 0;border-bottom:1px solid var(--border);font-size:14px}
+.dr:last-of-type{border-bottom:none}
+.dk{color:var(--ink3);flex-shrink:0;margin-right:12px}
+.dv{font-weight:700;text-align:right;word-break:break-all;max-width:65%}
+
+/* ── STATUS GRID ──────────────────────────────────────────── */
+.sg{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-top:10px}
+.sp{padding:11px 4px;border-radius:var(--rs);border:1.5px solid var(--border);background:var(--surface);color:var(--ink2);font-size:11px;font-weight:800;font-family:inherit;cursor:pointer;text-align:center;transition:all .15s;letter-spacing:.2px}
+.sp.on{border-color:var(--ink);background:var(--ink);color:#fff}
+
+/* ── LOADING ──────────────────────────────────────────────── */
+.ld{display:flex;align-items:center;justify-content:center;gap:5px;padding:56px 20px}
+.dt{width:5px;height:5px;background:var(--ink3);border-radius:50%;animation:pu .9s ease-in-out infinite}
+.dt:nth-child(2){animation-delay:.15s}
+.dt:nth-child(3){animation-delay:.3s}
+@keyframes pu{0%,80%,100%{opacity:.25;transform:scale(.7)}40%{opacity:1;transform:scale(1)}}
+
+/* ── EMPTY ────────────────────────────────────────────────── */
+.em{text-align:center;padding:64px 20px;color:var(--ink3)}
+.em-ic{font-size:44px;margin-bottom:14px;opacity:.4}
+.em-t{font-size:16px;font-weight:800;color:var(--ink2);margin-bottom:5px;letter-spacing:-.3px}
+.em-d{font-size:13px;line-height:1.6}
+
+/* ── TOAST ────────────────────────────────────────────────── */
+.toast{position:fixed;bottom:90px;left:50%;transform:translateX(-50%) translateY(10px);background:var(--ink);color:#fff;padding:11px 22px;border-radius:24px;font-size:13px;font-weight:700;opacity:0;transition:all .22s;z-index:300;white-space:nowrap;pointer-events:none;box-shadow:0 4px 20px rgba(0,0,0,.2);letter-spacing:-.2px}
+.toast.on{opacity:1;transform:translateX(-50%) translateY(0)}
+
+/* ── DIVIDER ──────────────────────────────────────────────── */
+.dv-line{height:1px;background:var(--border);margin:16px 0}
+
+/* ── EXPENSE TOTAL ───────────────────────────────────────── */
+.exp-total{
+  background:var(--ink);border-radius:var(--r);
+  padding:20px 22px;margin-bottom:12px;
+}
+.exp-total-lbl{font-size:9px;font-weight:800;letter-spacing:1.5px;text-transform:uppercase;color:rgba(255,255,255,.4);margin-bottom:6px}
+.exp-total-num{font-size:36px;font-weight:900;letter-spacing:-2px;color:#fff;line-height:1}
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<div class="hd">
+  <div class="wm">初辣<div class="wm-dot"></div></div>
+  <button class="sync" onclick="loadAll()"><span id="sync-icon">↻</span> 更新</button>
+</div>
+
+<!-- NAV -->
+<nav class="nav">
+  <button class="ni on" onclick="showPage('overview',this)"><span class="ni-ico">◎</span>總覽</button>
+  <button class="ni" onclick="showPage('orders',this)"><span class="ni-ico">▤</span>訂單</button>
+  <button class="ni" onclick="showPage('stock',this)"><span class="ni-ico">◫</span>庫存</button>
+  <button class="ni" onclick="showPage('expenses',this)"><span class="ni-ico">◈</span>支出</button>
+  <button class="ni" onclick="showPage('batches',this)"><span class="ni-ico">⊙</span>生產</button>
+</nav>
+
+<!-- FAB -->
+<button class="fab hid" id="fab" onclick="openFab()">＋</button>
+
+<!-- PAGES -->
+<div class="pg on" id="page-overview">
+  <div class="ld"><div class="dt"></div><div class="dt"></div><div class="dt"></div></div>
+</div>
+<div class="pg" id="page-orders">
+  <div class="fil" id="orders-filter">
+    <button class="fp on" onclick="filterOrders('')" id="f-all">全部</button>
+    <button class="fp" onclick="filterOrders('待確認')" id="f-待確認">待確認</button>
+    <button class="fp" onclick="filterOrders('已確認')" id="f-已確認">已確認</button>
+    <button class="fp" onclick="filterOrders('備貨中')" id="f-備貨中">備貨中</button>
+    <button class="fp" onclick="filterOrders('已出貨')" id="f-已出貨">已出貨</button>
+    <button class="fp" onclick="filterOrders('已送達')" id="f-已送達">已送達</button>
+  </div>
+  <div id="orders-content"><div class="ld"><div class="dt"></div><div class="dt"></div><div class="dt"></div></div></div>
+</div>
+<div class="pg" id="page-stock">
+  <div id="stock-content"><div class="ld"><div class="dt"></div><div class="dt"></div><div class="dt"></div></div></div>
+</div>
+<div class="pg" id="page-expenses">
+  <div id="expenses-content"><div class="ld"><div class="dt"></div><div class="dt"></div><div class="dt"></div></div></div>
+</div>
+<div class="pg" id="page-batches">
+  <div id="batches-content"><div class="ld"><div class="dt"></div><div class="dt"></div><div class="dt"></div></div></div>
+</div>
+
+<!-- MODALS -->
+<div class="mb" id="modal-order"><div class="mo"><div class="mh"></div><div class="mt" id="modal-order-title">訂單</div><div id="modal-order-body"></div><button class="btn btn-ghost" onclick="closeModal('modal-order')">關閉</button></div></div>
+
+<div class="mb" id="modal-expense"><div class="mo">
+  <div class="mh"></div><div class="mt">新增支出</div>
+  <div class="fg"><label class="fl">日期</label><input class="fi" type="date" id="exp-date"></div>
+  <div class="f2">
+    <div class="fg"><label class="fl">類別</label><select class="fi fi-s" id="exp-category"><option>原物料採購</option><option>包裝材料</option><option>市集攤位費</option><option>運費／寄件</option><option>設備工具</option><option>行銷設計</option><option>雜支</option></select></div>
+    <div class="fg"><label class="fl">金額（元）</label><input class="fi" type="number" id="exp-amount" placeholder="0"></div>
+  </div>
+  <div class="fg"><label class="fl">項目說明</label><input class="fi" id="exp-desc" placeholder="例：雞心椒粉 300g"></div>
+  <div class="f2">
+    <div class="fg"><label class="fl">付款方式</label><select class="fi fi-s" id="exp-payment"><option>匯款</option><option>現金</option><option>信用卡</option><option>LINE Pay</option></select></div>
+    <div class="fg"><label class="fl">供應商</label><input class="fi" id="exp-supplier" placeholder="益昌實業"></div>
+  </div>
+  <div class="fg"><label class="fl">備註</label><input class="fi" id="exp-note" placeholder="選填"></div>
+  <button class="btn btn-blk" id="exp-submit" onclick="submitExpense()">儲存支出</button>
+  <button class="btn btn-ghost" onclick="closeModal('modal-expense')">取消</button>
+</div></div>
+
+<div class="mb" id="modal-batch"><div class="mo">
+  <div class="mh"></div><div class="mt">新增生產批次</div>
+  <div class="f2">
+    <div class="fg"><label class="fl">生產日期</label><input class="fi" type="date" id="batch-date"></div>
+    <div class="fg"><label class="fl">負責人</label><input class="fi" id="batch-operator" placeholder="媽媽"></div>
+  </div>
+  <div class="f2">
+    <div class="fg"><label class="fl">產出瓶數</label><input class="fi" type="number" id="batch-qty" placeholder="22"></div>
+    <div class="fg"><label class="fl">包材成本（元）</label><input class="fi" type="number" id="batch-packaging" placeholder="0"></div>
+  </div>
+  <div class="recipe-box">
+    <div class="recipe-lbl">配方用量</div>
+    <div class="f2">
+      <div class="fg" style="margin-bottom:8px"><label class="fl" style="margin-bottom:4px">葵花油 ml</label><input class="fi" type="number" id="b-oil" value="3000"></div>
+      <div class="fg" style="margin-bottom:8px"><label class="fl" style="margin-bottom:4px">魔鬼椒粉 g</label><input class="fi" type="number" id="b-devil" value="20"></div>
+      <div class="fg" style="margin-bottom:8px"><label class="fl" style="margin-bottom:4px">朝天椒粉 g</label><input class="fi" type="number" id="b-facing" value="130"></div>
+      <div class="fg" style="margin-bottom:8px"><label class="fl" style="margin-bottom:4px">雞心椒粉 g</label><input class="fi" type="number" id="b-heart" value="190"></div>
+      <div class="fg" style="margin-bottom:8px"><label class="fl" style="margin-bottom:4px">二荊條粉 g</label><input class="fi" type="number" id="b-ejing" value="100"></div>
+      <div class="fg" style="margin-bottom:8px"><label class="fl" style="margin-bottom:4px">大紅袍花椒 g</label><input class="fi" type="number" id="b-peppercorn" value="90"></div>
+      <div class="fg" style="margin-bottom:0"><label class="fl" style="margin-bottom:4px">匈牙利紅椒粉 g</label><input class="fi" type="number" id="b-hungary" value="20"></div>
+    </div>
+  </div>
+  <div class="fg"><label class="fl">備註</label><input class="fi" id="batch-note" placeholder="例：這批辣度調高了"></div>
+  <button class="btn btn-blk" id="batch-submit" onclick="submitBatch()">儲存批次</button>
+  <button class="btn btn-ghost" onclick="closeModal('modal-batch')">取消</button>
+</div></div>
+
+<div class="mb" id="modal-addorder"><div class="mo">
+  <div class="mh"></div><div class="mt">新增訂單</div>
+  <div class="f2">
+    <div class="fg"><label class="fl">下單日期</label><input class="fi" type="date" id="ao-date"></div>
+    <div class="fg"><label class="fl">來源</label><select class="fi fi-s" id="ao-source"><option>朋友介紹</option><option>LINE官方帳號</option><option>市集現場</option><option>Instagram</option></select></div>
+  </div>
+  <div class="f2">
+    <div class="fg"><label class="fl">顧客姓名</label><input class="fi" id="ao-name" placeholder="姓名"></div>
+    <div class="fg"><label class="fl">手機</label><input class="fi" type="tel" id="ao-phone" placeholder="09xx"></div>
+  </div>
+  <div class="f2">
+    <div class="fg"><label class="fl">數量（瓶）</label><input class="fi" type="number" id="ao-qty" placeholder="1"></div>
+    <div class="fg"><label class="fl">單價（元）</label><input class="fi" type="number" id="ao-price" value="220"></div>
+  </div>
+  <div class="fg"><label class="fl">配送方式</label><select class="fi fi-s" id="ao-delivery"><option>宅配到府</option><option>超商取貨</option><option>面交</option></select></div>
+  <div class="fg"><label class="fl">收件地址</label><input class="fi" id="ao-address" placeholder="宅配地址或超商門市"></div>
+  <div class="f2">
+    <div class="fg"><label class="fl">收款方式</label><select class="fi fi-s" id="ao-payment"><option>匯款</option><option>LINE Pay</option><option>現金</option></select></div>
+    <div class="fg"><label class="fl">LINE名稱</label><input class="fi" id="ao-line" placeholder="選填"></div>
+  </div>
+  <div class="fg"><label class="fl">備註</label><input class="fi" id="ao-note" placeholder="選填"></div>
+  <button class="btn btn-blk" id="ao-submit" onclick="submitAddOrder()">新增訂單</button>
+  <button class="btn btn-ghost" onclick="closeModal('modal-addorder')">取消</button>
+</div></div>
+
+<div class="mb" id="modal-edit-order"><div class="mo">
+  <div class="mh"></div><div class="mt">編輯訂單</div>
+  <input type="hidden" id="eo-id">
+  <div class="f2">
+    <div class="fg"><label class="fl">下單日期</label><input class="fi" type="date" id="eo-date"></div>
+    <div class="fg"><label class="fl">來源</label><select class="fi fi-s" id="eo-source"><option>朋友介紹</option><option>Google表單</option><option>LINE官方帳號</option><option>市集現場</option><option>Instagram</option></select></div>
+  </div>
+  <div class="f2">
+    <div class="fg"><label class="fl">顧客姓名</label><input class="fi" id="eo-name"></div>
+    <div class="fg"><label class="fl">手機</label><input class="fi" type="tel" id="eo-phone"></div>
+  </div>
+  <div class="f2">
+    <div class="fg"><label class="fl">數量（瓶）</label><input class="fi" type="number" id="eo-qty"></div>
+    <div class="fg"><label class="fl">單價（元）</label><input class="fi" type="number" id="eo-price"></div>
+  </div>
+  <div class="f2">
+    <div class="fg"><label class="fl">配送方式</label><select class="fi fi-s" id="eo-delivery"><option>宅配到府</option><option>超商取貨</option><option>面交</option></select></div>
+    <div class="fg"><label class="fl">LINE名稱</label><input class="fi" id="eo-line"></div>
+  </div>
+  <div class="fg"><label class="fl">收件人姓名</label><input class="fi" id="eo-recvname"></div>
+  <div class="fg"><label class="fl">收件人手機</label><input class="fi" type="tel" id="eo-recvphone"></div>
+  <div class="fg"><label class="fl">地址</label><input class="fi" id="eo-address"></div>
+  <div class="f2">
+    <div class="fg"><label class="fl">超商品牌</label><input class="fi" id="eo-convbrand"></div>
+    <div class="fg"><label class="fl">門市店號</label><input class="fi" id="eo-convstore"></div>
+  </div>
+  <div class="fg"><label class="fl">備註</label><input class="fi" id="eo-note"></div>
+  <button class="btn btn-blk" id="eo-submit" onclick="submitEditOrder()">儲存修改</button>
+  <button class="btn btn-ghost" onclick="closeModal('modal-edit-order')">取消</button>
+</div></div>
+
+<div class="mb" id="modal-edit-expense"><div class="mo">
+  <div class="mh"></div><div class="mt">編輯支出</div>
+  <input type="hidden" id="ee-rowindex">
+  <div class="fg"><label class="fl">日期</label><input class="fi" type="date" id="ee-date"></div>
+  <div class="f2">
+    <div class="fg"><label class="fl">類別</label><select class="fi fi-s" id="ee-category"><option>原物料採購</option><option>包裝材料</option><option>市集攤位費</option><option>運費／寄件</option><option>設備工具</option><option>行銷設計</option><option>雜支</option></select></div>
+    <div class="fg"><label class="fl">金額（元）</label><input class="fi" type="number" id="ee-amount"></div>
+  </div>
+  <div class="fg"><label class="fl">項目說明</label><input class="fi" id="ee-desc"></div>
+  <div class="f2">
+    <div class="fg"><label class="fl">付款方式</label><select class="fi fi-s" id="ee-payment"><option>匯款</option><option>現金</option><option>信用卡</option><option>LINE Pay</option></select></div>
+    <div class="fg"><label class="fl">供應商</label><input class="fi" id="ee-supplier"></div>
+  </div>
+  <div class="fg"><label class="fl">備註</label><input class="fi" id="ee-note"></div>
+  <button class="btn btn-blk" id="ee-submit" onclick="submitEditExpense()">儲存修改</button>
+  <button class="btn btn-ghost" onclick="closeModal('modal-edit-expense')">取消</button>
+</div></div>
+
+<div class="mb" id="modal-edit-batch"><div class="mo">
+  <div class="mh"></div><div class="mt">編輯批次</div>
+  <input type="hidden" id="eb-rowindex">
+  <div class="f2">
+    <div class="fg"><label class="fl">生產日期</label><input class="fi" type="date" id="eb-date"></div>
+    <div class="fg"><label class="fl">負責人</label><input class="fi" id="eb-operator"></div>
+  </div>
+  <div class="f2">
+    <div class="fg"><label class="fl">產出瓶數</label><input class="fi" type="number" id="eb-qty"></div>
+    <div class="fg"><label class="fl">包材成本（元）</label><input class="fi" type="number" id="eb-packaging"></div>
+  </div>
+  <div class="recipe-box">
+    <div class="recipe-lbl">配方用量</div>
+    <div class="f2">
+      <div class="fg" style="margin-bottom:8px"><label class="fl" style="margin-bottom:4px">葵花油 ml</label><input class="fi" type="number" id="eb-oil"></div>
+      <div class="fg" style="margin-bottom:8px"><label class="fl" style="margin-bottom:4px">魔鬼椒粉 g</label><input class="fi" type="number" id="eb-devil"></div>
+      <div class="fg" style="margin-bottom:8px"><label class="fl" style="margin-bottom:4px">朝天椒粉 g</label><input class="fi" type="number" id="eb-facing"></div>
+      <div class="fg" style="margin-bottom:8px"><label class="fl" style="margin-bottom:4px">雞心椒粉 g</label><input class="fi" type="number" id="eb-heart"></div>
+      <div class="fg" style="margin-bottom:8px"><label class="fl" style="margin-bottom:4px">二荊條粉 g</label><input class="fi" type="number" id="eb-ejing"></div>
+      <div class="fg" style="margin-bottom:8px"><label class="fl" style="margin-bottom:4px">大紅袍花椒 g</label><input class="fi" type="number" id="eb-peppercorn"></div>
+      <div class="fg" style="margin-bottom:0"><label class="fl" style="margin-bottom:4px">匈牙利紅椒粉 g</label><input class="fi" type="number" id="eb-hungary"></div>
+    </div>
+  </div>
+  <div class="fg"><label class="fl">備註</label><input class="fi" id="eb-note"></div>
+  <button class="btn btn-blk" id="eb-submit" onclick="submitEditBatch()">儲存修改</button>
+  <button class="btn btn-ghost" onclick="closeModal('modal-edit-batch')">取消</button>
+</div></div>
+
+<div class="mb" id="modal-edit-stock"><div class="mo">
+  <div class="mh"></div><div class="mt" id="es-title">編輯品項</div>
+  <input type="hidden" id="es-name">
+  <input type="hidden" id="es-idx">
+  <div class="f2">
+    <div class="fg"><label class="fl">採購規格數量</label><input class="fi" type="number" id="es-specqty"></div>
+    <div class="fg"><label class="fl">採購價（元）</label><input class="fi" type="number" id="es-price"></div>
+  </div>
+  <div class="f2">
+    <div class="fg"><label class="fl">現有數量</label><input class="fi" type="number" id="es-currentqty"></div>
+    <div class="fg"><label class="fl">安全庫存量</label><input class="fi" type="number" id="es-safeqty"></div>
+  </div>
+  <div class="fg"><label class="fl">供應商</label><input class="fi" id="es-supplier"></div>
+  <div class="fg"><label class="fl">備註</label><input class="fi" id="es-note"></div>
+  <button class="btn btn-blk" id="es-submit" onclick="submitEditStock()">儲存修改</button>
+  <button class="btn btn-ghost" onclick="closeModal('modal-edit-stock')">取消</button>
+</div></div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+
+// ── 核心工具函式（最先定義）────────────────────────────────
+function fmt(n) {
+  var num = parseFloat(n);
+  if (isNaN(num)) return '—';
+  return num.toLocaleString('zh-TW');
+}
+function fmtDate(d) {
+  if (!d) return '—';
+  var dt = new Date(d);
+  if (isNaN(dt.getTime())) return String(d).substring(0,10);
+  return (dt.getMonth()+1) + '/' + dt.getDate();
+}
+function today() { return new Date().toISOString().split('T')[0]; }
+function statusBadge(s) {
+  var map = {'待確認':'b-pending','已確認':'b-confirmed','備貨中':'b-packing','已出貨':'b-shipped','已送達':'b-done','已取消':'b-cancelled'};
+  return map[s] || 'b-pending';
+}
+
+
+const API = "https://script.google.com/macros/s/AKfycbycsADk9T9TGLXjAMmSWpe32fK4Tgv5U7aSKTg5TEyaAaXes2kV6hZKNEF4_f4HIyXc/exec";
+
+// ── 狀態 ─────────────────────────────────────────────────────
+let allOrders = [];
+let currentFilter = '';
+let currentPage = 'overview';
+let stockData = [];
+
+// ── 頁面切換 ─────────────────────────────────────────────────
+function showPage(id, el) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.getElementById('page-'+id).classList.add('active');
+  el.classList.add('active');
+  currentPage = id;
+
+  const fab = document.getElementById('fab');
+  fab.classList.toggle('hidden', id === 'overview');
+
+  if (id === 'orders'   && allOrders.length === 0) loadOrders();
+  if (id === 'stock'    && stockData.length === 0)  loadStock();
+  if (id === 'expenses') loadExpenses();
+  if (id === 'batches')  loadBatches();
+}
+
+
+// ══════════════════════════════════════════════════════════════
+// 編輯功能
+// ══════════════════════════════════════════════════════════════
+
+// ── 編輯訂單 ─────────────────────────────────────────────────
+function openEditOrder(o) {
+  closeModal('modal-order');
+  document.getElementById('eo-id').value    = o['訂單編號'] || '';
+  document.getElementById('eo-date').value  = toDateInput(o['下單日期']);
+  setSelectValue('eo-source', o['來源管道']);
+  document.getElementById('eo-name').value      = o['訂購人姓名'] || '';
+  document.getElementById('eo-phone').value     = o['訂購人手機'] || '';
+  document.getElementById('eo-qty').value       = o['訂購數量（瓶）'] || o['訂購數量'] || '';
+  document.getElementById('eo-price').value     = o['單價'] || 220;
+  setSelectValue('eo-delivery', o['配送方式']);
+  document.getElementById('eo-line').value      = o['LINE名稱'] || '';
+  document.getElementById('eo-recvname').value  = o['收件人姓名'] || '';
+  document.getElementById('eo-recvphone').value = o['收件人手機'] || '';
+  document.getElementById('eo-address').value   = o['收件地址'] || '';
+  document.getElementById('eo-convbrand').value = o['超商品牌'] || '';
+  document.getElementById('eo-convstore').value = o['門市店號'] || '';
+  document.getElementById('eo-note').value      = o['備註'] || '';
+  openModal('modal-edit-order');
+}
+
+async function submitEditOrder() {
+  const btn = document.getElementById('eo-submit');
+  const orderId = document.getElementById('eo-id').value;
+  const qty = parseInt(document.getElementById('eo-qty').value) || 0;
+  if (!orderId || !qty) { showToast('請填入必要資料'); return; }
+  btn.disabled = true; btn.textContent = '儲存中…';
+  try {
+    await apiPost({ action: 'editOrder', orderId, data: {
+      date:      document.getElementById('eo-date').value,
+      source:    document.getElementById('eo-source').value,
+      buyerName: document.getElementById('eo-name').value,
+      buyerPhone:document.getElementById('eo-phone').value,
+      qty, unitPrice: parseFloat(document.getElementById('eo-price').value) || 220,
+      delivery:  document.getElementById('eo-delivery').value,
+      lineName:  document.getElementById('eo-line').value,
+      recvName:  document.getElementById('eo-recvname').value,
+      recvPhone: document.getElementById('eo-recvphone').value,
+      address:   document.getElementById('eo-address').value,
+      convBrand: document.getElementById('eo-convbrand').value,
+      convStore: document.getElementById('eo-convstore').value,
+      note:      document.getElementById('eo-note').value,
+    }});
+    showToast('訂單已更新');
+    closeModal('modal-edit-order');
+    await loadOrders();
+  } catch(e) { showToast('失敗：' + e.message); }
+  finally { btn.disabled = false; btn.textContent = '儲存修改'; }
+}
+
+// ── 編輯支出 ─────────────────────────────────────────────────
+let expenseDataCache = [];
+
+async function loadExpenses() {
+  const el = document.getElementById('expenses-content');
+  el.innerHTML = '<div class="loading"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div>';
+  try {
+    const data = await apiGet('expenses');
+    expenseDataCache = data;
+    if (!data.length) {
+      el.innerHTML = '<div class="empty"><div class="empty-icon">◈</div><div class="empty-title">還沒有支出記錄</div><div class="empty-desc">點右下角 ＋ 新增一筆</div></div>';
+      return;
+    }
+    const now = new Date();
+    let monthTotal = 0;
+    data.forEach(r => {
+      const d = new Date(r['日期']);
+      if (d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear()) {
+        monthTotal += parseFloat(r['金額（元）']) || 0;
+      }
+    });
+    let rows = data.map((r, idx) =>
+      '<div class="list-row" onclick="openEditExpense(' + JSON.stringify(r).replace(/"/g,'&quot;') + ',' + idx + ')">' +
+        '<div class="list-row-left">' +
+          '<div class="list-title">' + (r['項目說明']||'—') + '</div>' +
+          '<div class="list-sub">' + fmtDate(r['日期']) + '　' + (r['類別']||'') + (r['供應商／對象'] ? '　' + r['供應商／對象'] : '') + '</div>' +
+        '</div>' +
+        '<div class="list-right">' +
+          '<div class="list-amount" style="color:var(--accent)">$' + fmt(r['金額（元）']) + '</div>' +
+          '<span style="font-size:18px;color:var(--ink3)">›</span>' +
+        '</div>' +
+      '</div>'
+    ).join('');
+    el.innerHTML =
+      '<div class="card" style="margin-bottom:10px">' +
+        '<div class="kpi-label">本月支出合計</div>' +
+        '<div class="kpi-num" style="color:var(--accent)">$' + fmt(monthTotal) + '</div>' +
+      '</div>' +
+      '<div class="sec">所有記錄</div>' +
+      '<div class="list-card">' + rows + '</div>';
+  } catch(e) {
+    el.innerHTML = '<div class="empty"><div class="empty-icon">⚠️</div><div class="empty-title">載入失敗</div><div class="empty-desc">' + e.message + '</div></div>';
+  }
+}
+
+
+function openEditExpense(r, idx) {
+  document.getElementById('ee-rowindex').value = idx;
+  document.getElementById('ee-date').value     = toDateInput(r['日期']);
+  setSelectValue('ee-category', r['類別']);
+  document.getElementById('ee-amount').value   = r['金額（元）'] || '';
+  document.getElementById('ee-desc').value     = r['項目說明'] || '';
+  setSelectValue('ee-payment', r['付款方式']);
+  document.getElementById('ee-supplier').value = r['供應商／對象'] || '';
+  document.getElementById('ee-note').value     = r['備註'] || '';
+  openModal('modal-edit-expense');
+}
+
+async function submitEditExpense() {
+  const btn = document.getElementById('ee-submit');
+  const rowIndex = document.getElementById('ee-rowindex').value;
+  btn.disabled = true; btn.textContent = '儲存中…';
+  try {
+    await apiPost({ action: 'editExpense', rowIndex, data: {
+      date:          document.getElementById('ee-date').value,
+      category:      document.getElementById('ee-category').value,
+      description:   document.getElementById('ee-desc').value,
+      amount:        document.getElementById('ee-amount').value,
+      paymentMethod: document.getElementById('ee-payment').value,
+      supplier:      document.getElementById('ee-supplier').value,
+      note:          document.getElementById('ee-note').value,
+    }});
+    showToast('支出已更新');
+    closeModal('modal-edit-expense');
+    loadExpenses();
+  } catch(e) { showToast('失敗：' + e.message); }
+  finally { btn.disabled = false; btn.textContent = '儲存修改'; }
+}
+
+// ── 編輯生產批次 ─────────────────────────────────────────────
+function openEditBatch(r, idx) {
+  document.getElementById('eb-rowindex').value  = idx;
+  document.getElementById('eb-date').value      = toDateInput(r['生產日期']);
+  document.getElementById('eb-operator').value  = r['負責人'] || '';
+  document.getElementById('eb-qty').value       = r['產出瓶數'] || '';
+  document.getElementById('eb-packaging').value = r['包材成本'] || '';
+  document.getElementById('eb-oil').value       = r['葵花油(ml)'] || r['葵花油'] || 3000;
+  document.getElementById('eb-devil').value     = r['魔鬼椒粉(g)'] || r['魔鬼椒粉'] || 20;
+  document.getElementById('eb-facing').value    = r['朝天椒粉(g)'] || r['朝天椒粉'] || 130;
+  document.getElementById('eb-heart').value     = r['雞心椒粉(g)'] || r['雞心椒粉'] || 190;
+  document.getElementById('eb-ejing').value     = r['二荊條粉(g)'] || r['二荊條粉'] || 100;
+  document.getElementById('eb-peppercorn').value= r['大紅袍花椒(g)'] || r['大紅袍花椒'] || 90;
+  document.getElementById('eb-hungary').value   = r['匈牙利紅椒粉(g)'] || r['匈牙利紅椒粉'] || 20;
+  document.getElementById('eb-note').value      = r['備註'] || '';
+  openModal('modal-edit-batch');
+}
+
+async function submitEditBatch() {
+  const btn = document.getElementById('eb-submit');
+  btn.disabled = true; btn.textContent = '儲存中…';
+  try {
+    await apiPost({ action: 'editBatch', rowIndex: document.getElementById('eb-rowindex').value, data: {
+      date:         document.getElementById('eb-date').value,
+      operator:     document.getElementById('eb-operator').value,
+      qty:          document.getElementById('eb-qty').value,
+      packagingCost:document.getElementById('eb-packaging').value,
+      oil:          document.getElementById('eb-oil').value,
+      devil:        document.getElementById('eb-devil').value,
+      facing:       document.getElementById('eb-facing').value,
+      heart:        document.getElementById('eb-heart').value,
+      ejing:        document.getElementById('eb-ejing').value,
+      peppercorn:   document.getElementById('eb-peppercorn').value,
+      hungary:      document.getElementById('eb-hungary').value,
+      note:         document.getElementById('eb-note').value,
+    }});
+    showToast('生產批次已更新');
+    closeModal('modal-edit-batch');
+    loadBatches();
+  } catch(e) { showToast('失敗：' + e.message); }
+  finally { btn.disabled = false; btn.textContent = '儲存修改'; }
+}
+
+// ── 編輯庫存品項 ─────────────────────────────────────────────
+function openEditStock(s, idx) {
+  document.getElementById('es-title').textContent = '編輯：' + s['品項名稱'];
+  document.getElementById('es-name').value      = s['品項名稱'] || '';
+  document.getElementById('es-idx').value       = idx;
+  document.getElementById('es-specqty').value   = s['採購規格\n（每包/瓶數量）'] || s['採購規格'] || '';
+  document.getElementById('es-price').value     = s['採購價（元）'] || s['採購價'] || '';
+  document.getElementById('es-currentqty').value= s['現有數量'] || '';
+  document.getElementById('es-safeqty').value   = s['安全庫存量'] || '';
+  document.getElementById('es-supplier').value  = s['供應商'] || '';
+  document.getElementById('es-note').value      = s['備註'] || '';
+  openModal('modal-edit-stock');
+}
+
+async function submitEditStock() {
+  const btn = document.getElementById('es-submit');
+  const name = document.getElementById('es-name').value;
+  btn.disabled = true; btn.textContent = '儲存中…';
+  try {
+    await apiPost({ action: 'editStock', name, data: {
+      specQty:    document.getElementById('es-specqty').value,
+      price:      document.getElementById('es-price').value,
+      currentQty: document.getElementById('es-currentqty').value,
+      safeQty:    document.getElementById('es-safeqty').value,
+      supplier:   document.getElementById('es-supplier').value,
+      note:       document.getElementById('es-note').value,
+    }});
+    const idx = parseInt(document.getElementById('es-idx').value);
+    showToast(name + ' 已更新');
+    closeModal('modal-edit-stock');
+    await loadStock();
+  } catch(e) { showToast('失敗：' + e.message); }
+  finally { btn.disabled = false; btn.textContent = '儲存修改'; }
+}
+
+// ── 工具函式 ────────────────────────────────────────────────
+function fmt(n) {
+  const num = parseFloat(n);
+  if (isNaN(num)) return '—';
+  return num.toLocaleString('zh-TW');
+}
+
+function fmtDate(d) {
+  if (!d) return '—';
+  const dt = new Date(d);
+  if (isNaN(dt)) return String(d).substring(0,10);
+  return (dt.getMonth()+1) + '/' + dt.getDate();
+}
+
+function today() {
+  return new Date().toISOString().split('T')[0];
+}
+
+function statusBadge(s) {
+  return {
+    '待確認':'b-pending','已確認':'b-confirmed','備貨中':'b-packing',
+    '已出貨':'b-shipped','已送達':'b-done','已取消':'b-cancelled'
+  }[s] || 'b-pending';
+}
+
+function setDefaultDates() {
+  const t = today();
+  ['exp-date','batch-date','ao-date'].forEach(function(id) {
+    const el = document.getElementById(id);
+    if (el && !el.value) el.value = t;
+  });
+}
+
+// ── 工具：日期格式轉換 ───────────────────────────────────────
+function toDateInput(val) {
+  if (!val) return '';
+  const d = new Date(val);
+  if (isNaN(d)) return String(val).substring(0, 10);
+  return d.toISOString().split('T')[0];
+}
+
+function setSelectValue(id, val) {
+  const sel = document.getElementById(id);
+  if (!sel || !val) return;
+  for (let i = 0; i < sel.options.length; i++) {
+    if (sel.options[i].value === val || sel.options[i].text === val) {
+      sel.selectedIndex = i; return;
+    }
+  }
+}
+
+// ── 載入全部 ─────────────────────────────────────────────────
+async function loadAll() {
+  const icon = document.getElementById('sync-icon');
+  icon.className = 'spin'; icon.textContent = '↻';
+  await Promise.all([loadOverview(), loadOrders(), loadStock()]);
+  icon.className = ''; icon.textContent = '↻';
+  showToast('已更新');
+}
+
+// ── API 呼叫 ─────────────────────────────────────────────────
+async function apiGet(action) {
+  return new Promise((resolve, reject) => {
+    const cbName = '_cb_' + Date.now();
+    const script = document.createElement('script');
+    // 10秒 timeout
+    const timer = setTimeout(() => {
+      delete window[cbName];
+      if (script.parentNode) document.body.removeChild(script);
+      reject(new Error('連線逾時（10秒）- action: ' + action));
+    }, 10000);
+    window[cbName] = (j) => {
+      clearTimeout(timer);
+      delete window[cbName];
+      if (script.parentNode) document.body.removeChild(script);
+      if (j.status !== 'ok') reject(new Error(j.message));
+      else resolve(j.data);
+    };
+    const url = `${API}?action=${action}&callback=${cbName}`;
+    console.log('JSONP request:', url);
+    script.src = url;
+    script.onerror = (e) => {
+      clearTimeout(timer);
+      delete window[cbName];
+      reject(new Error('Script 載入失敗: ' + url));
+    };
+    document.body.appendChild(script);
+  });
+}
+
+async function apiPost(body) {
+  // POST 改用 fetch + redirect follow（Apps Script 支援）
+  const r = await fetch(API, {
+    method: 'POST',
+    headers: { 'Content-Type': 'text/plain' },
+    body: JSON.stringify(body)
+  });
+  const j = await r.json();
+  if (j.status !== 'ok') throw new Error(j.message);
+  return j.data;
+}
+
+// ── 總覽 ─────────────────────────────────────────────────────
+async function loadOverview() {
+  const el = document.getElementById('overview-content');
+  el.innerHTML = '<div class="loading"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div>';
+  try {
+    const d = await apiGet('overview');
+    const profit = d.monthProfit;
+    const lowItems = d.lowStock || [];
+
+    // 用 innerHTML 直接組，避免字串拼接裡的跳脫問題
+    const html2 = [
+      '<div class="sec">本月財務</div>',
+      '<div class="card-dark">',
+        '<div class="kpi-label-inv">結餘</div>',
+        '<div class="kpi-num-inv" style="font-size:42px;letter-spacing:-2px;margin:4px 0 2px">$' + fmt(profit) + '</div>',
+        '<div class="kpi-sub-inv">收 $' + fmt(d.monthRevenue) + '　支 $' + fmt(d.monthExpense) + '</div>',
+      '</div>',
+      '<div class="kpi-row">',
+        '<div class="card kpi-sm" id="ov-orders-btn" style="cursor:pointer">',
+          '<div class="kpi-label">本月訂單</div>',
+          '<div class="kpi-num">' + d.monthOrders + '</div>',
+          '<div class="kpi-sub">筆</div>',
+        '</div>',
+        '<div class="card kpi-sm" id="ov-pending-btn" style="cursor:pointer">',
+          '<div class="kpi-label">待處理</div>',
+          '<div class="kpi-num" style="color:' + (d.pendingCount > 0 ? 'var(--accent)' : 'var(--ink)') + '">' + d.pendingCount + '</div>',
+          '<div class="kpi-sub">筆訂單</div>',
+        '</div>',
+      '</div>',
+      lowItems.length > 0
+        ? '<div class="sec">庫存警示</div>' + lowItems.map(function(s) {
+            return '<div class="warn-banner"><div class="warn-banner-dot"></div><div class="warn-banner-text">' +
+              s.name + '　' + (s.qty == 0 ? '已缺貨' : '現有 ' + s.qty + '，低於安全庫存') + '</div></div>';
+          }).join('')
+        : '',
+      '<div class="sec">本月收支</div>',
+      '<div class="card">',
+        '<div class="profit-row"><span class="profit-label">收入</span><span class="profit-val" style="color:var(--green)">$' + fmt(d.monthRevenue) + '</span></div>',
+        '<div class="profit-row"><span class="profit-label">支出</span><span class="profit-val" style="color:var(--accent)">$' + fmt(d.monthExpense) + '</span></div>',
+        '<div class="profit-row" style="border-bottom:none"><span class="profit-label" style="font-weight:700">結餘</span><span class="profit-val" style="color:' + (profit >= 0 ? 'var(--green)' : 'var(--accent)') + ';font-size:17px">$' + fmt(profit) + '</span></div>',
+      '</div>',
+      '<div style="font-size:10px;color:var(--ink3);text-align:right;margin-top:8px">' + new Date().toLocaleString('zh-TW',{month:'numeric',day:'numeric',hour:'2-digit',minute:'2-digit'}) + ' 更新</div>'
+    ].join('');
+
+    el.innerHTML = html2;
+
+    // 用 addEventListener 綁定點擊，避免 onclick 字串跳脫問題
+    var ordBtn = document.getElementById('ov-orders-btn');
+    if (ordBtn) ordBtn.addEventListener('click', function() {
+      showPage('orders', document.querySelectorAll('.nav-item')[1]);
+      filterOrders('');
+    });
+    var pendBtn = document.getElementById('ov-pending-btn');
+    if (pendBtn) pendBtn.addEventListener('click', function() {
+      showPage('orders', document.querySelectorAll('.nav-item')[1]);
+      filterOrders('待確認');
+    });
+
+  } catch(e) {
+    el.innerHTML = '<div class="empty"><div class="empty-icon">⚠️</div><div class="empty-title">連線失敗</div><div class="empty-desc">' + e.message + '</div></div>';
+  }
+}
+
+
+async function loadOrders() {
+  const el = document.getElementById('orders-content');
+  el.innerHTML = `<div class="loading"><div class="dot-loader"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div></div>`;
+  try {
+    allOrders = await apiGet('orders');
+    renderOrders();
+  } catch(e) {
+    el.innerHTML = `<div class="empty"><div class="empty-icon">⚠️</div><div class="empty-text">${e.message}</div></div>`;
+  }
+}
+
+function filterOrders(status) {
+  currentFilter = status;
+  document.querySelectorAll('[id^="f-"]').forEach(b => {
+    b.style.background = 'var(--white)';
+    b.style.color = 'var(--black)';
+  });
+  const active = document.getElementById('f-' + (status || 'all'));
+  if (active) { active.style.background = 'var(--black)'; active.style.color = 'var(--white)'; }
+  renderOrders();
+}
+
+function renderOrders() {
+  const el = document.getElementById('orders-content');
+  const list = currentFilter ? allOrders.filter(o => o['訂單狀態'] === currentFilter) : allOrders;
+  if (!list.length) {
+    el.innerHTML = '<div class="empty"><div class="empty-icon">▤</div><div class="empty-title">沒有訂單</div><div class="empty-desc">符合條件的訂單將顯示在這裡</div></div>';
+    return;
+  }
+  let rows = list.map(o => {
+    const qty = o['訂購數量（瓶）'] || o['訂購數量'] || '—';
+    return '<div class="list-row" onclick="openOrder(' + JSON.stringify(o).replace(/"/g,'&quot;') + ')">' +
+      '<div class="list-row-left">' +
+        '<div class="list-title">' + (o['訂購人姓名']||'—') + ' <span style="font-size:11px;color:var(--ink3);font-weight:500">' + (o['訂單編號']||'') + '</span></div>' +
+        '<div class="list-sub">' + fmtDate(o['下單日期']) + '　' + qty + '瓶　' + (o['配送方式']||'') + '</div>' +
+      '</div>' +
+      '<div class="list-right">' +
+        '<div class="list-amount">$' + fmt(o['訂單金額']) + '</div>' +
+        '<span class="badge ' + statusBadge(o['訂單狀態']) + '">' + (o['訂單狀態']||'—') + '</span>' +
+      '</div>' +
+    '</div>';
+  }).join('');
+  el.innerHTML = '<div class="list-card">' + rows + '</div>';
+}
+
+
+function openOrder(o) {
+  const statusList = ['待確認','已確認','備貨中','已出貨','已送達'];
+  const cur = o['訂單狀態'] || '';
+  document.getElementById('modal-order-title').textContent = o['訂單編號'] || '訂單詳情';
+
+  let statusBtns = '';
+  statusList.forEach(s => {
+    const isActive = cur === s;
+    statusBtns += '<button onclick="updateStatus(\''+o['訂單編號']+'\',\''+s+'\',this)" ' +
+      'style="padding:9px 4px;border-radius:8px;border:1px solid '+(isActive?'var(--black)':'var(--gray2)')+';' +
+      'background:'+(isActive?'var(--black)':'var(--white)')+';color:'+(isActive?'var(--white)':'var(--black)')+';' +
+      'font-size:12px;font-weight:700;font-family:inherit;cursor:pointer">' + s + '</button>';
+  });
+
+  const qty = o['訂購數量（瓶）'] || o['訂購數量'] || '—';
+  const isPaid = o['收款狀態'] === '已付款';
+
+  document.getElementById('modal-order-body').innerHTML =
+    detailRow('顧客', o['訂購人姓名']) +
+    detailRow('手機', o['訂購人手機']) +
+    detailRow('LINE', o['LINE名稱']) +
+    detailRow('來源', o['來源管道']) +
+    detailRow('數量', qty + ' 瓶') +
+    detailRow('金額', '$' + fmt(o['訂單金額'])) +
+    '<div class="divider"></div>' +
+    detailRow('配送', o['配送方式']) +
+    detailRow('收件人', o['收件人姓名']) +
+    detailRow('地址', o['收件地址']) +
+    (o['超商品牌'] ? detailRow('超商', o['超商品牌'] + ' ' + (o['門市店號']||'')) : '') +
+    '<div class="divider"></div>' +
+    detailRow('收款', '<span class="badge '+(isPaid?'b-paid':'b-unpaid')+'">'+(o['收款狀態']||'未付款')+'</span>') +
+    detailRow('物流單號', o['物流單號'] || '—') +
+    (o['備註'] ? detailRow('備註', o['備註']) : '') +
+
+    // 收款 + 編輯按鈕
+    '<div style="margin-top:16px;display:flex;gap:8px">' +
+      '<button class="btn btn-primary" style="flex:1;background:'+(isPaid?'var(--gray3)':'var(--green)')+'" ' +
+        'onclick="markPaid(\''+o['訂單編號']+'\',\''+o['收款狀態']+'\')">'+
+        (isPaid ? '已收款 ✓' : '標記已收款') +
+      '</button>' +
+      '<button class="btn btn-primary" style="flex:1;background:var(--gray5)" ' +
+        'onclick="openEditOrderById(\''+o['訂單編號']+'\')">編輯訂單</button>' +
+    '</div>' +
+
+    // 更新狀態區塊（移到下方）
+    '<div style="margin-top:16px">' +
+      '<div style="font-size:10px;font-weight:700;letter-spacing:1px;color:var(--gray4);text-transform:uppercase;margin-bottom:8px">更新狀態</div>' +
+      '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px">' +
+        statusBtns +
+      '</div>' +
+    '</div>' +
+
+    // 物流單號
+    (!o['物流單號'] ?
+      '<div style="margin-top:12px">' +
+        '<div class="form-row">' +
+          '<input class="fi" id="track-input" placeholder="填入物流單號">' +
+          '<button class="btn btn-primary" style="padding:10px" onclick="saveTrackNo(\''+o['訂單編號']+'\')">儲存</button>' +
+        '</div>' +
+      '</div>'
+    : '');
+
+  document.getElementById('modal-order').classList.add('open');
+}
+
+function openEditOrderById(orderId) {
+  const o = allOrders.find(o => o['訂單編號'] === orderId);
+  if (o) openEditOrder(o);
+}
+
+
+function detailRow(k, v) {
+  return '<div class="dr"><span class="dk">' + k + '</span><span class="dv">' + (v||'—') + '</span></div>';
+}
+
+async function updateStatus(orderId, status, btn) {
+  btn.closest('.stepper').querySelectorAll('.step').forEach(s => s.classList.remove('active'));
+  btn.classList.add('active');
+  try {
+    await apiPost({ action: 'updateOrderStatus', orderId, status });
+    const order = allOrders.find(o => o['訂單編號'] === orderId);
+    if (order) order['訂單狀態'] = status;
+    showToast('狀態已更新：' + status);
+  } catch(e) { showToast('更新失敗：' + e.message); }
+}
+
+async function markPaid(orderId, currentStatus) {
+  if (currentStatus === '已付款') return;
+  try {
+    await apiPost({ action: 'updatePayment', orderId, paymentStatus: '已付款', paymentDate: today() });
+    const order = allOrders.find(o => o['訂單編號'] === orderId);
+    if (order) order['收款狀態'] = '已付款';
+    showToast('已標記收款');
+    closeModal('modal-order');
+    renderOrders();
+  } catch(e) { showToast('更新失敗：' + e.message); }
+}
+
+async function saveTrackNo(orderId) {
+  const val = document.getElementById('track-input').value.trim();
+  if (!val) return;
+  try {
+    await apiPost({ action: 'updateOrderStatus', orderId, status: '已出貨', trackingNo: val, shipDate: today() });
+    showToast('物流單號已儲存，狀態改為已出貨');
+    closeModal('modal-order');
+    await loadOrders();
+  } catch(e) { showToast('儲存失敗：' + e.message); }
+}
+
+// ── 庫存 ─────────────────────────────────────────────────────
+async function loadStock() {
+  const el = document.getElementById('stock-content');
+  el.innerHTML = `<div class="loading"><div class="dot-loader"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div></div>`;
+  try {
+    stockData = await apiGet('stock');
+    renderStock();
+  } catch(e) {
+    el.innerHTML = `<div class="empty"><div class="empty-icon">⚠️</div><div class="empty-text">${e.message}</div></div>`;
+  }
+}
+
+function renderStock() {
+  const el = document.getElementById('stock-content');
+  if (!stockData.length) {
+    el.innerHTML = '<div class="empty"><div class="empty-icon">◫</div><div class="empty-title">沒有庫存資料</div></div>';
+    return;
+  }
+  const cats = [...new Set(stockData.map(s => s['分類'] || '其他'))];
+  let html2 = '';
+  cats.forEach(cat => {
+    const items = stockData.filter(s => s['分類'] === cat);
+    html2 += '<div class="sec">' + cat + '</div>';
+    items.forEach(s => {
+      const qty = parseFloat(s['現有數量']) || 0;
+      const safe = parseFloat(s['安全庫存量']) || 0;
+      const isLow = qty === 0 || (safe > 0 && qty <= safe);
+      const globalIdx = stockData.indexOf(s);
+      const badgeHtml = isLow
+        ? '<span class="badge ' + (qty===0?'b-warn':'b-low') + '">' + (qty===0?'缺貨':'偏低') + '</span>'
+        : '<span class="badge b-ok">正常</span>';
+      html2 += '<div class="stock-item">' +
+        '<div class="stock-top">' +
+          '<div>' +
+            '<div class="stock-name">' + (s['品項名稱']||'') + '</div>' +
+            '<div class="stock-meta">' + (s['單位']||'') + '　安全庫存 ' + safe + '</div>' +
+          '</div>' +
+          badgeHtml +
+        '</div>' +
+        '<div style="display:flex;align-items:center;justify-content:center;gap:8px">' +
+          '<button class="qty-btn" onclick="changeQty(' + globalIdx + ',-1)">−</button>' +
+          '<input class="qty-in" id="qty-' + globalIdx + '" value="' + qty + '" onchange="qtyChanged(' + globalIdx + ')">' +
+          '<button class="qty-btn" onclick="changeQty(' + globalIdx + ',1)">＋</button>' +
+        '</div>' +
+        '<div class="stock-actions">' +
+          '<button class="stock-btn stock-btn-save" onclick="saveQty(' + globalIdx + ')">更新數量</button>' +
+          '<button class="stock-btn stock-btn-edit" onclick="openEditStockByIdx(' + globalIdx + ')">編輯資料</button>' +
+        '</div>' +
+      '</div>';
+    });
+  });
+  el.innerHTML = html2;
+}
+
+
+function openEditStockByIdx(idx) {
+  const s = stockData[idx];
+  if (!s) return;
+  openEditStock(s, idx);
+}
+
+function changeQty(idx, delta) {
+  const input = document.getElementById('qty-'+idx);
+  const newVal = Math.max(0, (parseFloat(input.value) || 0) + delta);
+  input.value = newVal;
+  stockData[idx]._changed = true;
+}
+
+function qtyChanged(idx) {
+  stockData[idx]._changed = true;
+}
+
+async function saveQty(idx) {
+  const item = stockData[idx];
+  const qty = parseFloat(document.getElementById('qty-'+idx).value) || 0;
+  try {
+    await apiPost({ action: 'updateStock', name: item['品項名稱'], qty });
+    item['現有數量'] = qty;
+    showToast(item['品項名稱'] + ' 已更新');
+  } catch(e) { showToast('更新失敗：' + e.message); }
+}
+
+// loadExpenses 已移至編輯功能區塊
+
+// ── 生產批次 ─────────────────────────────────────────────────
+async function loadBatches() {
+  const el = document.getElementById('batches-content');
+  el.innerHTML = '<div class="loading"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div>';
+  try {
+    const data = await apiGet('batches');
+    if (!data.length) {
+      el.innerHTML = '<div class="empty"><div class="empty-icon">⊙</div><div class="empty-title">還沒有生產記錄</div><div class="empty-desc">每次生產完記錄一筆批次</div></div>';
+      return;
+    }
+    let rows = data.map((r, idx) =>
+      '<div class="list-row" onclick="openEditBatch(' + JSON.stringify(r).replace(/"/g,'&quot;') + ',' + idx + ')">' +
+        '<div class="list-row-left">' +
+          '<div class="list-title">' + (r['批次編號']||'—') +
+            ' <span style="font-size:11px;color:var(--ink3);font-weight:500">' + (r['負責人']||'') + '</span></div>' +
+          '<div class="list-sub">' + fmtDate(r['生產日期']) + '　' + (r['備註']||'') + '</div>' +
+        '</div>' +
+        '<div class="list-right">' +
+          '<div class="list-amount">' + (r['產出瓶數']||'—') + ' 瓶</div>' +
+          '<div style="font-size:11px;color:var(--ink3)">每瓶 $' + (r['每瓶成本'] ? Math.round(parseFloat(r['每瓶成本'])) : '—') + '</div>' +
+        '</div>' +
+      '</div>'
+    ).join('');
+    el.innerHTML = '<div class="list-card">' + rows + '</div>';
+  } catch(e) {
+    el.innerHTML = '<div class="empty"><div class="empty-icon">⚠️</div><div class="empty-title">載入失敗</div><div class="empty-desc">' + e.message + '</div></div>';
+  }
+}
+
+// ── 初始載入 ─────────────────────────────────────────────────
+loadOverview();
+
+
+// ── render 函式（全部重寫使用新 CSS class）───────────────────
+
+async function loadOverview() {
+  var el = document.getElementById('page-overview');
+  el.innerHTML = '<div class="ld"><div class="dt"></div><div class="dt"></div><div class="dt"></div></div>';
+  try {
+    var d = await apiGet('overview');
+    var profit = d.monthProfit;
+    var lowItems = d.lowStock || [];
+    var warnHtml = '';
+    if (lowItems.length > 0) {
+      warnHtml = '<div class="lbl">庫存警示</div>';
+      lowItems.forEach(function(s) {
+        warnHtml += '<div class="warn-item"><div class="warn-pip"></div><div class="warn-txt">' +
+          s.name + '　' + (s.qty == 0 ? '已缺貨' : '現有 ' + s.qty + '，低於安全庫存') +
+          '</div></div>';
+      });
+    }
+    el.innerHTML =
+      '<div class="lbl">本月財務</div>' +
+      '<div class="hero">' +
+        '<div class="hero-lbl">結餘</div>' +
+        '<div class="hero-num">$' + fmt(profit) + '</div>' +
+        '<div class="hero-sub">收入 <span>$' + fmt(d.monthRevenue) + '</span>　支出 <span>$' + fmt(d.monthExpense) + '</span></div>' +
+      '</div>' +
+      '<div class="stat-row">' +
+        '<div class="stat" id="ov-ord"><div class="stat-lbl">本月訂單</div><div class="stat-num">' + d.monthOrders + '</div><div class="stat-unit">筆</div></div>' +
+        '<div class="stat" id="ov-pend"><div class="stat-lbl">待處理</div><div class="stat-num' + (d.pendingCount > 0 ? ' hi' : '') + '">' + d.pendingCount + '</div><div class="stat-unit">筆訂單</div></div>' +
+      '</div>' +
+      warnHtml +
+      '<div class="lbl">收支明細</div>' +
+      '<div class="sum-card">' +
+        '<div class="sum-row"><span class="sum-key">總收入</span><span class="sum-val pos">$' + fmt(d.monthRevenue) + '</span></div>' +
+        '<div class="sum-row"><span class="sum-key">總支出</span><span class="sum-val neg">$' + fmt(d.monthExpense) + '</span></div>' +
+        '<div class="sum-row"><span class="sum-key" style="font-weight:700">結餘</span><span class="sum-val ' + (profit >= 0 ? 'pos' : 'neg') + '" style="font-size:17px">$' + fmt(profit) + '</span></div>' +
+      '</div>' +
+      '<div style="font-size:10px;color:var(--ink3);text-align:right;margin-top:8px">' + new Date().toLocaleString('zh-TW',{month:'numeric',day:'numeric',hour:'2-digit',minute:'2-digit'}) + ' 更新</div>';
+
+    var ob = document.getElementById('ov-ord');
+    if (ob) ob.addEventListener('click', function() { showPage('orders', document.querySelectorAll('.ni')[1]); filterOrders(''); });
+    var pb = document.getElementById('ov-pend');
+    if (pb) pb.addEventListener('click', function() { showPage('orders', document.querySelectorAll('.ni')[1]); filterOrders('待確認'); });
+  } catch(e) {
+    el.innerHTML = '<div class="em"><div class="em-ic">⚠</div><div class="em-t">連線失敗</div><div class="em-d">' + e.message + '</div></div>';
+  }
+}
+
+async function loadOrders() {
+  var el = document.getElementById('orders-content');
+  el.innerHTML = '<div class="ld"><div class="dt"></div><div class="dt"></div><div class="dt"></div></div>';
+  try {
+    allOrders = await apiGet('orders');
+    renderOrders();
+  } catch(e) {
+    el.innerHTML = '<div class="em"><div class="em-ic">⚠</div><div class="em-t">載入失敗</div><div class="em-d">' + e.message + '</div></div>';
+  }
+}
+
+function renderOrders() {
+  var el = document.getElementById('orders-content');
+  var list = currentFilter ? allOrders.filter(function(o) { return o['訂單狀態'] === currentFilter; }) : allOrders;
+  if (!list.length) {
+    el.innerHTML = '<div class="em"><div class="em-ic">▤</div><div class="em-t">沒有訂單</div><div class="em-d">符合條件的訂單會顯示在這裡</div></div>';
+    return;
+  }
+  var rows = list.map(function(o) {
+    var qty = o['訂購數量（瓶）'] || o['訂購數量'] || '—';
+    return '<div class="lr" onclick="openOrder(' + JSON.stringify(o).replace(/"/g,'&quot;') + ')">' +
+      '<div class="lr-l">' +
+        '<div class="lr-title">' + (o['訂購人姓名']||'—') + ' <span style="font-size:11px;color:var(--ink3);font-weight:500">' + (o['訂單編號']||'') + '</span></div>' +
+        '<div class="lr-sub">' + fmtDate(o['下單日期']) + '　' + qty + '瓶　' + (o['配送方式']||'') + '</div>' +
+      '</div>' +
+      '<div class="lr-r">' +
+        '<div class="lr-amt">$' + fmt(o['訂單金額']) + '</div>' +
+        '<span class="bd ' + statusBadge(o['訂單狀態']) + '">' + (o['訂單狀態']||'—') + '</span>' +
+      '</div>' +
+    '</div>';
+  }).join('');
+  el.innerHTML = '<div class="lc">' + rows + '</div>';
+}
+
+function filterOrders(status) {
+  currentFilter = status;
+  document.querySelectorAll('.fp').forEach(function(b) { b.classList.remove('on'); });
+  var active = document.getElementById('f-' + (status || 'all'));
+  if (active) active.classList.add('on');
+  renderOrders();
+}
+
+async function loadStock() {
+  var el = document.getElementById('stock-content');
+  el.innerHTML = '<div class="ld"><div class="dt"></div><div class="dt"></div><div class="dt"></div></div>';
+  try {
+    stockData = await apiGet('stock');
+    renderStock();
+  } catch(e) {
+    el.innerHTML = '<div class="em"><div class="em-ic">⚠</div><div class="em-t">載入失敗</div><div class="em-d">' + e.message + '</div></div>';
+  }
+}
+
+function renderStock() {
+  var el = document.getElementById('stock-content');
+  if (!stockData.length) {
+    el.innerHTML = '<div class="em"><div class="em-ic">◫</div><div class="em-t">沒有庫存資料</div></div>';
+    return;
+  }
+  var cats = [];
+  stockData.forEach(function(s) { var c = s['分類']||'其他'; if (cats.indexOf(c) < 0) cats.push(c); });
+  var html2 = '';
+  cats.forEach(function(cat) {
+    html2 += '<div class="lbl">' + cat + '</div>';
+    stockData.filter(function(s) { return (s['分類']||'其他') === cat; }).forEach(function(s) {
+      var qty = parseFloat(s['現有數量']) || 0;
+      var safe = parseFloat(s['安全庫存量']) || 0;
+      var isLow = qty === 0 || (safe > 0 && qty <= safe);
+      var gi = stockData.indexOf(s);
+      var badge = isLow
+        ? '<span class="bd ' + (qty===0?'b-warn':'b-low') + '">' + (qty===0?'缺貨':'偏低') + '</span>'
+        : '<span class="bd b-ok">正常</span>';
+      html2 += '<div class="sk">' +
+        '<div class="sk-top"><div><div class="sk-name">' + (s['品項名稱']||'') + '</div><div class="sk-meta">' + (s['單位']||'') + '　安全庫存 ' + safe + '</div></div>' + badge + '</div>' +
+        '<div class="sk-ctrl"><button class="qb" onclick="changeQty(' + gi + ',-1)">−</button><input class="qi" id="qty-' + gi + '" value="' + qty + '" onchange="qtyChanged(' + gi + ')"><button class="qb" onclick="changeQty(' + gi + ',1)">＋</button></div>' +
+        '<div class="sk-btns"><button class="sk-btn sk-save" onclick="saveQty(' + gi + ')">更新數量</button><button class="sk-btn sk-edit" onclick="openEditStockByIdx(' + gi + ')">編輯資料</button></div>' +
+        '</div>';
+    });
+  });
+  el.innerHTML = html2;
+}
+
+async function loadExpenses() {
+  var el = document.getElementById('expenses-content');
+  el.innerHTML = '<div class="ld"><div class="dt"></div><div class="dt"></div><div class="dt"></div></div>';
+  try {
+    var data = await apiGet('expenses');
+    expenseDataCache = data;
+    if (!data.length) {
+      el.innerHTML = '<div class="em"><div class="em-ic">◈</div><div class="em-t">還沒有支出記錄</div><div class="em-d">點右下角 ＋ 新增</div></div>';
+      return;
+    }
+    var now = new Date();
+    var monthTotal = 0;
+    data.forEach(function(r) {
+      var d = new Date(r['日期']);
+      if (d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear()) monthTotal += parseFloat(r['金額（元）']) || 0;
+    });
+    var rows = data.map(function(r, idx) {
+      return '<div class="lr" onclick="openEditExpense(' + JSON.stringify(r).replace(/"/g,'&quot;') + ',' + idx + ')">' +
+        '<div class="lr-l"><div class="lr-title">' + (r['項目說明']||'—') + '</div><div class="lr-sub">' + fmtDate(r['日期']) + '　' + (r['類別']||'') + (r['供應商／對象']?'　'+r['供應商／對象']:'') + '</div></div>' +
+        '<div class="lr-r"><div class="lr-amt">$' + fmt(r['金額（元）']) + '</div></div>' +
+      '</div>';
+    }).join('');
+    el.innerHTML =
+      '<div class="exp-total"><div class="exp-total-lbl">本月支出合計</div><div class="exp-total-num">$' + fmt(monthTotal) + '</div></div>' +
+      '<div class="lbl">所有記錄</div><div class="lc">' + rows + '</div>';
+  } catch(e) {
+    el.innerHTML = '<div class="em"><div class="em-ic">⚠</div><div class="em-t">載入失敗</div><div class="em-d">' + e.message + '</div></div>';
+  }
+}
+
+async function loadBatches() {
+  var el = document.getElementById('batches-content');
+  el.innerHTML = '<div class="ld"><div class="dt"></div><div class="dt"></div><div class="dt"></div></div>';
+  try {
+    var data = await apiGet('batches');
+    if (!data.length) {
+      el.innerHTML = '<div class="em"><div class="em-ic">⊙</div><div class="em-t">還沒有生產記錄</div><div class="em-d">點右下角 ＋ 新增批次</div></div>';
+      return;
+    }
+    var rows = data.map(function(r, idx) {
+      return '<div class="lr" onclick="openEditBatch(' + JSON.stringify(r).replace(/"/g,'&quot;') + ',' + idx + ')">' +
+        '<div class="lr-l"><div class="lr-title">' + (r['批次編號']||'—') + ' <span style="font-size:11px;color:var(--ink3);font-weight:500">' + (r['負責人']||'') + '</span></div><div class="lr-sub">' + fmtDate(r['生產日期']) + '　' + (r['備註']||'') + '</div></div>' +
+        '<div class="lr-r"><div class="lr-amt">' + (r['產出瓶數']||'—') + ' 瓶</div><div style="font-size:11px;color:var(--ink3)">每瓶 $' + (r['每瓶成本'] ? Math.round(parseFloat(r['每瓶成本'])) : '—') + '</div></div>' +
+      '</div>';
+    }).join('');
+    el.innerHTML = '<div class="lc">' + rows + '</div>';
+  } catch(e) {
+    el.innerHTML = '<div class="em"><div class="em-ic">⚠</div><div class="em-t">載入失敗</div><div class="em-d">' + e.message + '</div></div>';
+  }
+}
+
+function openOrder(o) {
+  var statusList = ['待確認','已確認','備貨中','已出貨','已送達'];
+  var cur = o['訂單狀態'] || '';
+  document.getElementById('modal-order-title').textContent = o['訂單編號'] || '訂單詳情';
+  var sPills = statusList.map(function(s) {
+    return '<button onclick="updateStatus('' + o['訂單編號'] + '','' + s + '',this)" class="sp' + (cur===s?' on':'') + '">' + s + '</button>';
+  }).join('');
+  var isPaid = o['收款狀態'] === '已付款';
+  var qty = o['訂購數量（瓶）'] || o['訂購數量'] || '—';
+  document.getElementById('modal-order-body').innerHTML =
+    detailRow('顧客', o['訂購人姓名']) +
+    detailRow('手機', o['訂購人手機']) +
+    detailRow('LINE', o['LINE名稱']) +
+    detailRow('來源', o['來源管道']) +
+    detailRow('數量', qty + ' 瓶') +
+    detailRow('金額', '$' + fmt(o['訂單金額'])) +
+    '<div class="dv-line"></div>' +
+    detailRow('配送', o['配送方式']) +
+    detailRow('收件人', o['收件人姓名']) +
+    detailRow('地址', o['收件地址']) +
+    (o['超商品牌'] ? detailRow('超商', o['超商品牌'] + ' ' + (o['門市店號']||'')) : '') +
+    '<div class="dv-line"></div>' +
+    detailRow('收款', '<span class="bd ' + (isPaid?'b-paid':'b-unpaid') + '">' + (o['收款狀態']||'未付款') + '</span>') +
+    detailRow('物流單號', o['物流單號'] || '—') +
+    (o['備註'] ? detailRow('備註', o['備註']) : '') +
+    '<div style="margin-top:16px;display:flex;gap:8px">' +
+      '<button class="btn btn-blk" style="flex:1;margin-top:0;background:' + (isPaid?'#ccc':'var(--green)') + '" onclick="markPaid('' + o['訂單編號'] + '','' + o['收款狀態'] + '')">' + (isPaid?'已收款 ✓':'標記已收款') + '</button>' +
+      '<button class="btn btn-blk" style="flex:1;margin-top:0;background:var(--dim)" onclick="openEditOrderById('' + o['訂單編號'] + '')">編輯</button>' +
+    '</div>' +
+    '<div style="margin-top:16px"><div class="lbl" style="margin-top:0">更新狀態</div><div class="sg">' + sPills + '</div></div>' +
+    (!o['物流單號'] ?
+      '<div style="margin-top:12px;display:flex;gap:8px"><input class="fi" id="track-input" placeholder="填入物流單號" style="flex:1"><button class="btn btn-blk" style="width:auto;padding:13px 16px;margin-top:0" onclick="saveTrackNo('' + o['訂單編號'] + '')">儲存</button></div>'
+    : '');
+  document.getElementById('modal-order').classList.add('on');
+}
+
+function detailRow(k, v) {
+  return '<div class="dr"><span class="dk">' + k + '</span><span class="dv">' + (v||'—') + '</span></div>';
+}
+
+function showPage(id, el) {
+  document.querySelectorAll('.pg').forEach(function(p) { p.classList.remove('on'); });
+  document.querySelectorAll('.ni').forEach(function(n) { n.classList.remove('on'); });
+  document.getElementById('page-'+id).classList.add('on');
+  if (el) el.classList.add('on');
+  currentPage = id;
+  var fab = document.getElementById('fab');
+  fab.classList.toggle('hid', id === 'overview');
+  if (id === 'orders' && allOrders.length === 0) loadOrders();
+  if (id === 'stock' && stockData.length === 0) loadStock();
+  if (id === 'expenses') loadExpenses();
+  if (id === 'batches') loadBatches();
+}
+
+function openModal(id) { document.getElementById(id).classList.add('on'); }
+function closeModal(id) { document.getElementById(id).classList.remove('on'); }
+
+document.querySelectorAll('.mb').forEach(function(bg) {
+  bg.addEventListener('click', function(e) { if (e.target === bg) bg.classList.remove('on'); });
+});
+
+function showToast(msg) {
+  var t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('on');
+  setTimeout(function() { t.classList.remove('on'); }, 2500);
+}
+
+function setDefaultDates() {
+  var t = today();
+  ['exp-date','batch-date','ao-date'].forEach(function(id) {
+    var el = document.getElementById(id);
+    if (el && !el.value) el.value = t;
+  });
+}
+
+function openFab() {
+  setDefaultDates();
+  if (currentPage === 'expenses') openModal('modal-expense');
+  else if (currentPage === 'batches') openModal('modal-batch');
+  else openModal('modal-addorder');
+}
+
+async function loadAll() {
+  var icon = document.getElementById('sync-icon');
+  icon.className = 'spin';
+  await Promise.all([loadOverview(), loadOrders(), loadStock()]);
+  icon.className = '';
+  showToast('已更新');
+}
+
+// 初始載入
+loadOverview();
+</script>
+</body>
+</html>
