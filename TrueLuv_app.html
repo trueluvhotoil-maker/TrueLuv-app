@@ -935,6 +935,39 @@ async function submitEditStock() {
   finally { btn.disabled = false; btn.textContent = '儲存修改'; }
 }
 
+// ── 工具函式 ────────────────────────────────────────────────
+function fmt(n) {
+  const num = parseFloat(n);
+  if (isNaN(num)) return '—';
+  return num.toLocaleString('zh-TW');
+}
+
+function fmtDate(d) {
+  if (!d) return '—';
+  const dt = new Date(d);
+  if (isNaN(dt)) return String(d).substring(0,10);
+  return (dt.getMonth()+1) + '/' + dt.getDate();
+}
+
+function today() {
+  return new Date().toISOString().split('T')[0];
+}
+
+function statusBadge(s) {
+  return {
+    '待確認':'b-pending','已確認':'b-confirmed','備貨中':'b-packing',
+    '已出貨':'b-shipped','已送達':'b-done','已取消':'b-cancelled'
+  }[s] || 'b-pending';
+}
+
+function setDefaultDates() {
+  const t = today();
+  ['exp-date','batch-date','ao-date'].forEach(function(id) {
+    const el = document.getElementById(id);
+    if (el && !el.value) el.value = t;
+  });
+}
+
 // ── 工具：日期格式轉換 ───────────────────────────────────────
 function toDateInput(val) {
   if (!val) return '';
