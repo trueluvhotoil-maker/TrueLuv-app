@@ -609,8 +609,26 @@ async function submitEditBatch(){
 }
 
 // ── 編輯庫存 ──
-function openEditStockByIdx(idx){var s=stockData[idx];if(!s)return;document.getElementById('es-title').textContent='編輯：'+s['品項名稱'];sv('es-name',s['品項名稱']);sv('es-idx',idx);sv('es-specqty',s['採購規格
-（每包/瓶數量）']||s['採購規格']||'');sv('es-price',s['採購價（元）']||s['採購價']||'');sv('es-currentqty',s['現有數量']);sv('es-safeqty',s['安全庫存量']);sv('es-supplier',s['供應商']);sv('es-note',s['備註']);om('modal-edit-stock')}
+function openEditStockByIdx(idx){
+  var s=stockData[idx];
+  if(!s)return;
+  document.getElementById('es-title').textContent='編輯：'+s['品項名稱'];
+  sv('es-name',s['品項名稱']);
+  sv('es-idx',idx);
+  // 採購規格欄位名稱有換行，用多種 key 嘗試
+  var specQty=s['採購規格']||s['採購規格\n（每包/瓶數量）']||'';
+  Object.keys(s).forEach(function(k){if(k.indexOf('採購規格')>=0)specQty=s[k]||specQty});
+  sv('es-specqty',specQty);
+  var price=s['採購價（元）']||s['採購價']||'';
+  Object.keys(s).forEach(function(k){if(k.indexOf('採購價')>=0)price=s[k]||price});
+  sv('es-price',price);
+  sv('es-currentqty',s['現有數量']||'');
+  sv('es-safeqty',s['安全庫存量']||'');
+  sv('es-supplier',s['供應商']||'');
+  sv('es-note',s['備註']||'');
+  om('modal-edit-stock');
+}
+
 async function submitEditStock(){
   var btn=document.getElementById('es-submit');btn.disabled=true;btn.textContent='儲存中…';
   try{
