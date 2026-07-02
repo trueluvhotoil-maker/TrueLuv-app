@@ -1159,45 +1159,72 @@ function openOrder(o) {
   const statusList = ['待確認','已確認','備貨中','已出貨','已送達'];
   const cur = o['訂單狀態'] || '';
   document.getElementById('modal-order-title').textContent = o['訂單編號'] || '訂單詳情';
-  document.getElementById('modal-order-body').innerHTML = `
-    <div class="stepper">
-      ${statusList.map(s => `<button class="step ${cur === s ? 'active' : ''}" onclick="updateStatus('${o['訂單編號']}','${s}',this)">${s}</button>`).join('')}
-    </div>
-    ${detailRow('顧客', o['訂購人姓名'])}
-    ${detailRow('手機', o['訂購人手機'])}
-    ${detailRow('LINE', o['LINE名稱'])}
-    ${detailRow('來源', o['來源管道'])}
-    ${detailRow('數量', (o['訂購數量（瓶）'] || o['訂購數量']) + ' 瓶')}
-    ${detailRow('金額', '$' + fmt(o['訂單金額']))}
-    <div class="divider"></div>
-    ${detailRow('配送', o['配送方式'])}
-    ${detailRow('收件人', o['收件人姓名'])}
-    ${detailRow('地址', o['收件地址'])}
-    ${o['超商品牌'] ? detailRow('超商', o['超商品牌'] + ' ' + (o['門市店號'] || '')) : ''}
-    <div class="divider"></div>
-    ${detailRow('收款', `<span class="badge ${o['收款狀態']==='已付款'?'b-paid':'b-unpaid'}">${o['收款狀態']||'未付款'}</span>`)}
-    ${detailRow('物流單號', o['物流單號'] || '—')}
-    ${o['備註'] ? detailRow('備註', o['備註']) : ''}
-    <div style="margin-top:16px;display:flex;gap:8px">
-      <button class="btn-submit" style="flex:1;background:${o['收款狀態']==='已付款'?'var(--gray3)':'var(--green)'}"
-        onclick="markPaid('${o['訂單編號']}','${o['收款狀態']}')">
-        ${o['收款狀態']==='已付款'?'已收款 ✓':'標記已收款'}
-      </button>
-      <button class="btn-submit" style="flex:1;background:var(--gray5)"
-        onclick="openEditOrder(${JSON.stringify(o).replace(/"/g,'&quot;')})">
-        編輯訂單
-      </button>
-    </div>
-    ${o['物流單號'] ? '' : `
-    <div style="margin-top:10px">
-      <div class="form-row">
-        <input class="form-input" id="track-input" placeholder="填入物流單號">
-        <button class="btn-submit" style="padding:10px" onclick="saveTrackNo('${o['訂單編號']}')">儲存</button>
-      </div>
-    </div>`}
-  `;
+
+  let statusBtns = '';
+  statusList.forEach(s => {
+    const isActive = cur === s;
+    statusBtns += '<button onclick="updateStatus(\''+o['訂單編號']+'\',\''+s+'\',this)" ' +
+      'style="padding:9px 4px;border-radius:8px;border:1px solid '+(isActive?'var(--black)':'var(--gray2)')+';' +
+      'background:'+(isActive?'var(--black)':'var(--white)')+';color:'+(isActive?'var(--white)':'var(--black)')+';' +
+      'font-size:12px;font-weight:700;font-family:inherit;cursor:pointer">' + s + '</button>';
+  });
+
+  const qty = o['訂購數量（瓶）'] || o['訂購數量'] || '—';
+  const isPaid = o['收款狀態'] === '已付款';
+
+  document.getElementById('modal-order-body').innerHTML =
+    detailRow('顧客', o['訂購人姓名']) +
+    detailRow('手機', o['訂購人手機']) +
+    detailRow('LINE', o['LINE名稱']) +
+    detailRow('來源', o['來源管道']) +
+    detailRow('數量', qty + ' 瓶') +
+    detailRow('金額', '$' + fmt(o['訂單金額'])) +
+    '<div class="divider"></div>' +
+    detailRow('配送', o['配送方式']) +
+    detailRow('收件人', o['收件人姓名']) +
+    detailRow('地址', o['收件地址']) +
+    (o['超商品牌'] ? detailRow('超商', o['超商品牌'] + ' ' + (o['門市店號']||'')) : '') +
+    '<div class="divider"></div>' +
+    detailRow('收款', '<span class="badge '+(isPaid?'b-paid':'b-unpaid')+'">'+(o['收款狀態']||'未付款')+'</span>') +
+    detailRow('物流單號', o['物流單號'] || '—') +
+    (o['備註'] ? detailRow('備註', o['備註']) : '') +
+
+    // 收款 + 編輯按鈕
+    '<div style="margin-top:16px;display:flex;gap:8px">' +
+      '<button class="btn-submit" style="flex:1;background:'+(isPaid?'var(--gray3)':'var(--green)')+'" ' +
+        'onclick="markPaid(\''+o['訂單編號']+'\',\''+o['收款狀態']+'\')">'+
+        (isPaid ? '已收款 ✓' : '標記已收款') +
+      '</button>' +
+      '<button class="btn-submit" style="flex:1;background:var(--gray5)" ' +
+        'onclick="openEditOrderById(\''+o['訂單編號']+'\')">編輯訂單</button>' +
+    '</div>' +
+
+    // 更新狀態區塊（移到下方）
+    '<div style="margin-top:16px">' +
+      '<div style="font-size:10px;font-weight:700;letter-spacing:1px;color:var(--gray4);text-transform:uppercase;margin-bottom:8px">更新狀態</div>' +
+      '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px">' +
+        statusBtns +
+      '</div>' +
+    '</div>' +
+
+    // 物流單號
+    (!o['物流單號'] ?
+      '<div style="margin-top:12px">' +
+        '<div class="form-row">' +
+          '<input class="form-input" id="track-input" placeholder="填入物流單號">' +
+          '<button class="btn-submit" style="padding:10px" onclick="saveTrackNo(\''+o['訂單編號']+'\')">儲存</button>' +
+        '</div>' +
+      '</div>'
+    : '');
+
   document.getElementById('modal-order').classList.add('open');
 }
+
+function openEditOrderById(orderId) {
+  const o = allOrders.find(o => o['訂單編號'] === orderId);
+  if (o) openEditOrder(o);
+}
+
 
 function detailRow(k, v) {
   return `<div class="detail-row"><span class="detail-key">${k}</span><span class="detail-val">${v||'—'}</span></div>`;
