@@ -1252,36 +1252,45 @@ async function loadStock() {
 function renderStock() {
   const el = document.getElementById('stock-content');
   if (!stockData.length) {
-    el.innerHTML = `<div class="empty"><div class="empty-icon">📦</div><div class="empty-text">沒有庫存資料</div></div>`;
+    el.innerHTML = '<div class="empty"><div class="empty-icon">📦</div><div class="empty-text">沒有庫存資料</div></div>';
     return;
   }
   const cats = [...new Set(stockData.map(s => s['分類'] || '其他'))];
-  el.innerHTML = cats.map(cat => {
+  let html = '';
+  cats.forEach(cat => {
     const items = stockData.filter(s => s['分類'] === cat);
-    return `<div class="sec-label">${cat}</div>` + items.map((s, idx) => {
+    html += '<div class="sec-label">' + cat + '</div>';
+    items.forEach(s => {
       const qty = parseFloat(s['現有數量']) || 0;
       const safe = parseFloat(s['安全庫存量']) || 0;
       const isLow = qty === 0 || (safe > 0 && qty <= safe);
       const globalIdx = stockData.indexOf(s);
-      return `
-      <div class="stock-item">
-        <div>
-          <div class="stock-name">${s['品項名稱']}</div>
-          <div class="stock-meta">${s['單位'] || ''} ｜ 安全庫存 ${safe}${s['單位']||''}</div>
-        </div>
-        <div style="display:flex;align-items:center;gap:8px">
-          ${isLow ? `<span class="badge b-warn">${qty===0?'缺貨':'偏低'}</span>` : ''}
-          <div class="stock-qty">
-            <button class="qty-btn" onclick="changeQty(${globalIdx},-1)">−</button>
-            <input class="qty-input" id="qty-${globalIdx}" value="${qty}" onchange="qtyChanged(${globalIdx})">
-            <button class="qty-btn" onclick="changeQty(${globalIdx},1)">＋</button>
-          </div>
-          <button onclick="saveQty(${globalIdx})" style="background:var(--black);color:var(--white);border:none;border-radius:6px;padding:6px 10px;font-size:12px;font-weight:700;cursor:pointer">存</button>
-          <button onclick="openEditStock(${JSON.stringify(s).replace(/'/g,'\\'').replace(/"/g,'&quot;')},${globalIdx})" style="background:var(--gray2);color:var(--black);border:none;border-radius:6px;padding:6px 10px;font-size:12px;font-weight:700;cursor:pointer">資料</button>
-        </div>
-      </div>`;
-    }).join('');
-  }).join('');
+      const warnBadge = isLow ? '<span class="badge b-warn">' + (qty===0?'缺貨':'偏低') + '</span>' : '';
+      html += '<div class="stock-item">' +
+        '<div>' +
+          '<div class="stock-name">' + (s['品項名稱']||'') + '</div>' +
+          '<div class="stock-meta">' + (s['單位']||'') + ' ｜ 安全庫存 ' + safe + (s['單位']||'') + '</div>' +
+        '</div>' +
+        '<div style="display:flex;align-items:center;gap:8px">' +
+          warnBadge +
+          '<div class="stock-qty">' +
+            '<button class="qty-btn" onclick="changeQty(' + globalIdx + ',-1)">−</button>' +
+            '<input class="qty-input" id="qty-' + globalIdx + '" value="' + qty + '" onchange="qtyChanged(' + globalIdx + ')">' +
+            '<button class="qty-btn" onclick="changeQty(' + globalIdx + ',1)">＋</button>' +
+          '</div>' +
+          '<button onclick="saveQty(' + globalIdx + ')" style="background:var(--black);color:var(--white);border:none;border-radius:6px;padding:6px 10px;font-size:12px;font-weight:700;cursor:pointer">存</button>' +
+          '<button onclick="openEditStockByIdx(' + globalIdx + ')" style="background:var(--gray2);color:var(--black);border:none;border-radius:6px;padding:6px 10px;font-size:12px;font-weight:700;cursor:pointer">資料</button>' +
+        '</div>' +
+      '</div>';
+    });
+  });
+  el.innerHTML = html;
+}
+
+function openEditStockByIdx(idx) {
+  const s = stockData[idx];
+  if (!s) return;
+  openEditStock(s, idx);
 }
 
 function changeQty(idx, delta) {
