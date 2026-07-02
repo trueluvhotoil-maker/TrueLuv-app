@@ -5,698 +5,563 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>初辣</title>
 <style>
-/* ── 設計系統 ─────────────────────────────────────────────── */
+/* ── 設計 Token ───────────────────────────────────────────── */
 :root {
-  --bg:       #F2F2F2;
-  --surface:  #FFFFFF;
-  --ink:      #111111;
-  --ink2:     #555555;
-  --ink3:     #AAAAAA;
-  --border:   #E4E4E4;
-  --black:    #111111;
-  --accent:   #7A3228;
-  --accent-l: #F2EAE9;
-  --green:    #1C4532;
-  --green-l:  #E6F0EC;
-  --warn:     #92400E;
-  --warn-l:   #FEF3C7;
-  --radius:   14px;
-  --radius-s: 8px;
+  --bg:      #F5F3F0;
+  --surface: #FFFFFF;
+  --ink:     #1A1A1A;
+  --ink2:    #6B6B6B;
+  --ink3:    #B0A99F;
+  --border:  #E8E4DF;
+  --black:   #1A1A1A;
+  --dim:     #2D2D2D;
+  --gold:    #C8A96E;
+  --green:   #2D5A3D;
+  --green-l: #EAF2EE;
+  --warn:    #8B4513;
+  --warn-l:  #FDF0E6;
+  --r: 16px;
+  --rs: 10px;
 }
 *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{height:100%}
 body{
   background:var(--bg);
   color:var(--ink);
   font-family:-apple-system,'Helvetica Neue',sans-serif;
   min-height:100vh;
-  padding-bottom:84px;
-  font-size:15px;
+  padding-bottom:72px;
   -webkit-font-smoothing:antialiased;
 }
 
 /* ── HEADER ───────────────────────────────────────────────── */
-header{
+.hd{
+  padding:24px 20px 16px;
+  display:flex;align-items:center;justify-content:space-between;
   background:var(--bg);
-  padding:20px 20px 12px;
-  display:flex;
-  align-items:flex-end;
-  justify-content:space-between;
-  position:sticky;top:0;z-index:100;
+  position:sticky;top:0;z-index:50;
 }
-.wordmark{
-  font-size:28px;
-  font-weight:900;
-  letter-spacing:-1.5px;
-  color:var(--ink);
-  line-height:1;
+.wm{
+  font-size:26px;font-weight:900;
+  letter-spacing:-1.5px;color:var(--ink);
+  display:flex;align-items:baseline;gap:1px;
 }
-.wordmark em{
-  font-style:normal;
-  color:var(--accent);
+.wm-dot{
+  width:7px;height:7px;border-radius:50%;
+  background:var(--gold);margin-left:3px;margin-bottom:2px;
 }
-.sync-btn{
-  background:var(--surface);
-  border:1px solid var(--border);
-  color:var(--ink2);
-  border-radius:20px;
-  padding:6px 14px;
-  font-size:12px;
-  font-weight:600;
-  cursor:pointer;
-  display:flex;align-items:center;gap:5px;
-  font-family:inherit;
-  transition:background .15s;
+.sync{
+  font-size:11px;font-weight:600;color:var(--ink2);
+  background:var(--surface);border:1px solid var(--border);
+  border-radius:20px;padding:6px 14px;cursor:pointer;
+  font-family:inherit;transition:background .15s;
 }
-.sync-btn:active{background:var(--border)}
-.spin{animation:spin .7s linear infinite;display:inline-block}
+.sync:active{background:var(--border)}
+.spin{animation:spin .6s linear infinite;display:inline-block}
 @keyframes spin{to{transform:rotate(360deg)}}
 
-/* ── BOTTOM NAV ───────────────────────────────────────────── */
-nav{
+/* ── NAV ──────────────────────────────────────────────────── */
+.nav{
   position:fixed;bottom:0;left:0;right:0;
   background:var(--surface);
   border-top:1px solid var(--border);
-  display:flex;padding-bottom:env(safe-area-inset-bottom);
+  display:flex;
   z-index:100;
+  padding-bottom:env(safe-area-inset-bottom);
 }
-.nav-item{
-  flex:1;padding:10px 4px 12px;
-  display:flex;flex-direction:column;align-items:center;gap:2px;
-  cursor:pointer;border:none;background:none;
-  font-size:10px;font-weight:500;color:var(--ink3);
-  font-family:inherit;transition:color .15s;letter-spacing:.2px;
+.ni{
+  flex:1;padding:10px 4px 11px;
+  display:flex;flex-direction:column;align-items:center;gap:3px;
+  border:none;background:none;cursor:pointer;
+  font-size:9px;font-weight:600;color:var(--ink3);
+  font-family:inherit;letter-spacing:.5px;text-transform:uppercase;
+  transition:color .15s;
 }
-.nav-item.active{color:var(--accent);font-weight:700}
-.nav-icon{font-size:21px;line-height:1}
+.ni.on{color:var(--ink);font-weight:800}
+.ni-ico{font-size:20px;line-height:1}
 
-/* ── PAGES ────────────────────────────────────────────────── */
-.page{display:none;padding:0 16px 16px}
-.page.active{display:block}
+/* ── PAGE ─────────────────────────────────────────────────── */
+.pg{display:none;padding:0 16px 20px}
+.pg.on{display:block}
 
-/* ── SECTION LABEL ────────────────────────────────────────── */
-.sec{
-  font-size:11px;font-weight:700;
-  letter-spacing:1.2px;text-transform:uppercase;
-  color:var(--ink3);margin:24px 0 10px;
+/* ── LABEL ────────────────────────────────────────────────── */
+.lbl{
+  font-size:9px;font-weight:800;letter-spacing:2px;
+  text-transform:uppercase;color:var(--ink3);
+  margin:20px 0 10px;
 }
-.sec:first-child{margin-top:4px}
+.lbl:first-child{margin-top:4px}
 
-/* ── CARD ─────────────────────────────────────────────────── */
-.card{
-  background:var(--surface);
-  border-radius:var(--radius);
-  padding:18px;
-  margin-bottom:10px;
-}
-.card-dark{
+/* ── HERO CARD（黑底大數字）──────────────────────────────── */
+.hero{
   background:var(--ink);
-  border-radius:var(--radius);
-  padding:20px;
-  margin-bottom:10px;
-}
-.card-accent{
-  background:var(--accent);
-  border-radius:var(--radius);
-  padding:20px;
-  margin-bottom:10px;
-}
-
-/* ── KPI ──────────────────────────────────────────────────── */
-.kpi-label{
-  font-size:11px;font-weight:600;letter-spacing:.8px;
-  text-transform:uppercase;color:var(--ink3);margin-bottom:6px;
-}
-.kpi-label-inv{color:rgba(255,255,255,.5)}
-.kpi-num{
-  font-size:36px;font-weight:900;letter-spacing:-2px;
-  line-height:1;color:var(--ink);
-}
-.kpi-num-inv{color:#fff}
-.kpi-num-accent{color:var(--accent)}
-.kpi-sub{font-size:12px;color:var(--ink3);margin-top:5px}
-.kpi-sub-inv{font-size:12px;color:rgba(255,255,255,.5);margin-top:5px}
-
-.kpi-row{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px}
-.kpi-sm .kpi-num{font-size:26px;letter-spacing:-1px}
-
-/* ── LIST ─────────────────────────────────────────────────── */
-.list-card{
-  background:var(--surface);
-  border-radius:var(--radius);
+  border-radius:var(--r);
+  padding:24px 22px;
+  margin-bottom:12px;
+  position:relative;
   overflow:hidden;
-  margin-bottom:10px;
 }
-.list-row{
+.hero::after{
+  content:'';
+  position:absolute;right:-20px;top:-20px;
+  width:120px;height:120px;border-radius:50%;
+  background:rgba(200,169,110,.08);
+  pointer-events:none;
+}
+.hero-lbl{font-size:10px;font-weight:700;letter-spacing:1.5px;color:rgba(255,255,255,.4);text-transform:uppercase;margin-bottom:8px}
+.hero-num{font-size:48px;font-weight:900;letter-spacing:-3px;color:#fff;line-height:1;margin-bottom:6px}
+.hero-sub{font-size:12px;color:rgba(255,255,255,.4)}
+.hero-sub span{color:rgba(255,255,255,.7);font-weight:600}
+
+/* ── STAT ROW（兩欄小卡）────────────────────────────────── */
+.stat-row{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px}
+.stat{
+  background:var(--surface);border-radius:var(--r);
+  padding:16px 18px;cursor:pointer;
+  border:1px solid var(--border);
+  transition:border-color .15s;
+}
+.stat:active{border-color:var(--ink)}
+.stat-lbl{font-size:9px;font-weight:800;letter-spacing:1.5px;text-transform:uppercase;color:var(--ink3);margin-bottom:8px}
+.stat-num{font-size:32px;font-weight:900;letter-spacing:-2px;line-height:1;color:var(--ink)}
+.stat-num.hi{color:var(--warn)}
+.stat-unit{font-size:11px;color:var(--ink3);margin-top:4px}
+
+/* ── SUMMARY CARD ────────────────────────────────────────── */
+.sum-card{
+  background:var(--surface);border-radius:var(--r);
+  border:1px solid var(--border);
+  overflow:hidden;margin-bottom:12px;
+}
+.sum-row{
+  display:flex;justify-content:space-between;align-items:center;
+  padding:14px 18px;border-bottom:1px solid var(--border);
+}
+.sum-row:last-child{border-bottom:none}
+.sum-key{font-size:12px;color:var(--ink2)}
+.sum-val{font-size:14px;font-weight:800;letter-spacing:-.3px}
+.sum-val.pos{color:var(--green)}
+.sum-val.neg{color:var(--warn)}
+
+/* ── WARN LIST ───────────────────────────────────────────── */
+.warn-item{
+  background:var(--warn-l);border-radius:var(--rs);
+  padding:11px 14px;margin-bottom:6px;
+  display:flex;align-items:center;gap:10px;
+}
+.warn-pip{width:6px;height:6px;border-radius:50%;background:var(--warn);flex-shrink:0}
+.warn-txt{font-size:12px;font-weight:600;color:var(--warn)}
+
+/* ── LIST CARD ───────────────────────────────────────────── */
+.lc{
+  background:var(--surface);border-radius:var(--r);
+  border:1px solid var(--border);overflow:hidden;
+  margin-bottom:12px;
+}
+.lr{
   padding:14px 18px;
-  display:flex;align-items:center;justify-content:space-between;
+  display:flex;align-items:center;
   border-bottom:1px solid var(--border);
   cursor:pointer;transition:background .1s;
 }
-.list-row:last-child{border-bottom:none}
-.list-row:active{background:var(--bg)}
-.list-row-left{flex:1;min-width:0}
-.list-title{font-size:14px;font-weight:600;margin-bottom:2px;
-  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.list-sub{font-size:11px;color:var(--ink3)}
-.list-right{display:flex;flex-direction:column;align-items:flex-end;gap:4px;margin-left:12px}
-.list-amount{font-size:15px;font-weight:800;letter-spacing:-.5px}
-.chev{color:var(--ink3);font-size:16px;margin-left:6px}
+.lr:last-child{border-bottom:none}
+.lr:active{background:var(--bg)}
+.lr-l{flex:1;min-width:0}
+.lr-title{
+  font-size:15px;font-weight:700;margin-bottom:3px;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+}
+.lr-sub{font-size:11px;color:var(--ink3)}
+.lr-r{display:flex;flex-direction:column;align-items:flex-end;gap:5px;margin-left:14px}
+.lr-amt{font-size:16px;font-weight:900;letter-spacing:-.5px}
+.chev{font-size:14px;color:var(--border);margin-left:4px}
 
 /* ── BADGE ────────────────────────────────────────────────── */
-.badge{
+.bd{
   display:inline-flex;align-items:center;
   padding:3px 9px;border-radius:20px;
   font-size:10px;font-weight:700;letter-spacing:.3px;
-  white-space:nowrap;
 }
-.b-pending{background:var(--warn-l);color:var(--warn)}
+.b-pending{background:#FEF3C7;color:#92400E}
 .b-confirmed{background:#EEF2FF;color:#3730A3}
-.b-packing{background:#E0F2FE;color:#075985}
-.b-shipped{background:#F0FDF4;color:#166534}
+.b-packing{background:#E0F2FE;color:#0369A1}
+.b-shipped{background:#F0F9FF;color:#0C4A6E}
 .b-done{background:var(--green-l);color:var(--green)}
 .b-cancelled{background:var(--bg);color:var(--ink3);border:1px solid var(--border)}
-.b-unpaid{background:var(--accent-l);color:var(--accent)}
+.b-unpaid{background:#FEF3C7;color:#92400E}
 .b-paid{background:var(--green-l);color:var(--green)}
-.b-warn{background:var(--accent-l);color:var(--accent)}
+.b-warn{background:var(--warn-l);color:var(--warn)}
 .b-ok{background:var(--green-l);color:var(--green)}
-.b-low{background:var(--warn-l);color:var(--warn)}
+.b-low{background:#FEF3C7;color:#92400E}
 
-/* ── STATUS PILL (訂單更新狀態) ───────────────────────────── */
-.status-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-top:8px}
-.status-pill{
-  padding:10px 4px;border-radius:var(--radius-s);
-  border:1.5px solid var(--border);
-  background:var(--surface);color:var(--ink2);
-  font-size:11px;font-weight:700;font-family:inherit;
-  cursor:pointer;text-align:center;transition:all .15s;
+/* ── FILTER ──────────────────────────────────────────────── */
+.fil{
+  display:flex;gap:6px;overflow-x:auto;padding:0 0 14px;
+  scrollbar-width:none;
 }
-.status-pill.active{
-  border-color:var(--accent);background:var(--accent);color:#fff;
+.fil::-webkit-scrollbar{display:none}
+.fp{
+  padding:7px 16px;border-radius:20px;
+  border:1.5px solid var(--border);background:var(--surface);
+  color:var(--ink2);font-size:11px;font-weight:700;
+  cursor:pointer;white-space:nowrap;font-family:inherit;
+  transition:all .15s;letter-spacing:.3px;
 }
+.fp.on{border-color:var(--ink);background:var(--ink);color:#fff}
 
-/* ── FAB ──────────────────────────────────────────────────── */
-.fab{
-  position:fixed;bottom:90px;right:18px;
-  width:50px;height:50px;border-radius:50%;
-  background:var(--accent);color:#fff;
-  border:none;font-size:22px;font-weight:300;cursor:pointer;
-  box-shadow:0 4px 20px rgba(122,50,40,.35);
-  display:flex;align-items:center;justify-content:center;
-  z-index:99;transition:transform .1s,box-shadow .1s;
-  font-family:inherit;
-}
-.fab:active{transform:scale(.92);box-shadow:0 2px 10px rgba(122,50,40,.3)}
-.fab.hidden{display:none}
-
-/* ── MODAL ────────────────────────────────────────────────── */
-.modal-bg{
-  position:fixed;inset:0;background:rgba(0,0,0,.4);
-  z-index:200;display:none;align-items:flex-end;
-  backdrop-filter:blur(2px);
-}
-.modal-bg.open{display:flex}
-.modal{
-  background:var(--surface);width:100%;
-  border-radius:20px 20px 0 0;
-  max-height:92vh;overflow-y:auto;
-  padding:16px 20px 48px;
-}
-.modal-handle{
-  width:32px;height:3px;background:var(--border);
-  border-radius:2px;margin:0 auto 20px;
-}
-.modal-title{font-size:18px;font-weight:800;letter-spacing:-.5px;margin-bottom:20px}
-
-/* ── FORM ─────────────────────────────────────────────────── */
-.fg{margin-bottom:14px}
-.fl{
-  font-size:10px;font-weight:700;letter-spacing:1px;
-  text-transform:uppercase;color:var(--ink3);
-  margin-bottom:6px;display:block;
-}
-.fi{
-  width:100%;background:var(--bg);
-  border:1.5px solid transparent;border-radius:var(--radius-s);
-  padding:12px 14px;font-size:15px;font-family:inherit;
-  color:var(--ink);outline:none;transition:border-color .15s;
-}
-.fi:focus{border-color:var(--accent);background:var(--surface)}
-.fi-select{
-  appearance:none;-webkit-appearance:none;
-  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%23AAA'/%3E%3C/svg%3E");
-  background-repeat:no-repeat;background-position:right 14px center;
-  padding-right:36px;
-}
-.f2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-
-/* ── BUTTONS ──────────────────────────────────────────────── */
-.btn{
-  width:100%;border:none;border-radius:var(--radius-s);
-  padding:15px;font-size:15px;font-weight:700;
-  font-family:inherit;cursor:pointer;
-  transition:opacity .15s;
-}
-.btn:active{opacity:.85}
-.btn:disabled{opacity:.4;cursor:not-allowed}
-.btn-primary{background:var(--ink);color:#fff;margin-top:8px}
-.btn-accent{background:var(--accent);color:#fff;margin-top:8px}
-.btn-ghost{background:none;color:var(--ink3);margin-top:6px}
-
-/* ── DETAIL ROWS ──────────────────────────────────────────── */
-.dr{
-  display:flex;justify-content:space-between;
-  padding:12px 0;border-bottom:1px solid var(--border);
-  font-size:14px;align-items:flex-start;
-}
-.dr:last-of-type{border-bottom:none}
-.dk{color:var(--ink3);flex-shrink:0;margin-right:12px}
-.dv{font-weight:600;text-align:right;word-break:break-all}
-
-/* ── STOCK ITEM ───────────────────────────────────────────── */
-.stock-item{
-  background:var(--surface);
-  border-radius:var(--radius);
-  padding:14px 16px;
+/* ── STOCK ───────────────────────────────────────────────── */
+.sk{
+  background:var(--surface);border-radius:var(--r);
+  border:1px solid var(--border);padding:16px 18px;
   margin-bottom:8px;
 }
-.stock-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}
-.stock-name{font-size:14px;font-weight:700}
-.stock-meta{font-size:11px;color:var(--ink3);margin-top:2px}
-.stock-controls{display:flex;align-items:center;gap:0}
-.qty-btn{
-  width:34px;height:34px;border-radius:50%;
+.sk-top{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:14px}
+.sk-name{font-size:15px;font-weight:800;margin-bottom:3px}
+.sk-meta{font-size:11px;color:var(--ink3)}
+.sk-ctrl{display:flex;align-items:center;gap:0;justify-content:center;margin-bottom:10px}
+.qb{
+  width:36px;height:36px;border-radius:50%;
   border:1.5px solid var(--border);background:var(--bg);
   font-size:18px;cursor:pointer;
   display:flex;align-items:center;justify-content:center;
-  font-family:inherit;color:var(--ink);transition:background .1s;
+  font-family:inherit;transition:all .1s;
 }
-.qty-btn:active{background:var(--border)}
-.qty-in{
-  width:52px;text-align:center;background:none;border:none;
-  font-size:16px;font-weight:800;font-family:inherit;
-  color:var(--ink);outline:none;
+.qb:active{background:var(--border)}
+.qi{
+  width:56px;text-align:center;background:none;border:none;
+  font-size:18px;font-weight:900;font-family:inherit;color:var(--ink);outline:none;
+  letter-spacing:-1px;
 }
-.stock-actions{display:flex;gap:6px;margin-top:10px}
-.stock-btn{
-  flex:1;padding:8px;border-radius:var(--radius-s);
-  border:none;font-size:12px;font-weight:700;
-  font-family:inherit;cursor:pointer;
+.sk-btns{display:grid;grid-template-columns:2fr 1fr;gap:6px}
+.sk-btn{
+  padding:9px;border-radius:var(--rs);border:none;
+  font-size:11px;font-weight:800;font-family:inherit;cursor:pointer;
+  letter-spacing:.3px;
 }
-.stock-btn-save{background:var(--ink);color:#fff}
-.stock-btn-edit{background:var(--bg);color:var(--ink2)}
+.sk-save{background:var(--ink);color:#fff}
+.sk-edit{background:var(--bg);color:var(--ink2);border:1px solid var(--border)}
 
-/* ── FILTER TABS ──────────────────────────────────────────── */
-.filter-scroll{
-  display:flex;gap:6px;overflow-x:auto;padding:0 0 12px;
-  scrollbar-width:none;-ms-overflow-style:none;
+/* ── FAB ──────────────────────────────────────────────────── */
+.fab{
+  position:fixed;bottom:82px;right:18px;
+  width:52px;height:52px;border-radius:50%;
+  background:var(--ink);color:#fff;
+  border:none;font-size:22px;cursor:pointer;
+  box-shadow:0 6px 24px rgba(26,26,26,.25);
+  display:flex;align-items:center;justify-content:center;
+  z-index:99;transition:transform .1s,box-shadow .1s;font-family:inherit;
 }
-.filter-scroll::-webkit-scrollbar{display:none}
-.f-pill{
-  padding:7px 16px;border-radius:20px;
-  border:1.5px solid var(--border);background:var(--surface);
-  color:var(--ink2);font-size:12px;font-weight:600;
-  cursor:pointer;white-space:nowrap;font-family:inherit;
-  transition:all .15s;
-}
-.f-pill.active{border-color:var(--accent);background:var(--accent);color:#fff}
+.fab:active{transform:scale(.91);box-shadow:0 3px 12px rgba(26,26,26,.2)}
+.fab.hid{display:none}
 
-/* ── DIVIDER ──────────────────────────────────────────────── */
-.div{height:1px;background:var(--border);margin:16px 0}
+/* ── MODAL ────────────────────────────────────────────────── */
+.mb{
+  position:fixed;inset:0;background:rgba(0,0,0,.45);
+  z-index:200;display:none;align-items:flex-end;
+  backdrop-filter:blur(3px);-webkit-backdrop-filter:blur(3px);
+}
+.mb.on{display:flex}
+.mo{
+  background:var(--surface);width:100%;
+  border-radius:22px 22px 0 0;
+  max-height:92vh;overflow-y:auto;
+  padding:14px 20px 48px;
+}
+.mh{width:32px;height:3px;background:var(--border);border-radius:2px;margin:0 auto 22px}
+.mt{font-size:20px;font-weight:900;letter-spacing:-.8px;margin-bottom:20px}
+
+/* ── FORM ─────────────────────────────────────────────────── */
+.fg{margin-bottom:14px}
+.fl{font-size:9px;font-weight:800;letter-spacing:1.5px;text-transform:uppercase;color:var(--ink3);margin-bottom:6px;display:block}
+.fi{width:100%;background:var(--bg);border:1.5px solid transparent;border-radius:var(--rs);padding:13px 14px;font-size:15px;font-family:inherit;color:var(--ink);outline:none;transition:border-color .15s;appearance:none}
+.fi:focus{border-color:var(--ink);background:var(--surface)}
+.fi-s{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%23B0A99F'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 14px center;padding-right:36px}
+.f2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.recipe-box{background:var(--bg);border-radius:var(--rs);padding:14px;margin-bottom:14px}
+.recipe-lbl{font-size:9px;font-weight:800;letter-spacing:1.5px;text-transform:uppercase;color:var(--ink3);margin-bottom:10px}
+
+/* ── BUTTON ──────────────────────────────────────────────── */
+.btn{width:100%;border:none;border-radius:var(--rs);padding:15px;font-size:15px;font-weight:800;font-family:inherit;cursor:pointer;transition:opacity .15s;letter-spacing:-.2px}
+.btn:active{opacity:.8}
+.btn:disabled{opacity:.4;cursor:not-allowed}
+.btn-blk{background:var(--ink);color:#fff;margin-top:10px}
+.btn-dim{background:var(--dim);color:#fff;margin-top:10px}
+.btn-ghost{background:none;color:var(--ink3);margin-top:6px;font-size:14px}
+
+/* ── ORDER DETAIL ROWS ───────────────────────────────────── */
+.dr{display:flex;justify-content:space-between;align-items:flex-start;padding:13px 0;border-bottom:1px solid var(--border);font-size:14px}
+.dr:last-of-type{border-bottom:none}
+.dk{color:var(--ink3);flex-shrink:0;margin-right:12px}
+.dv{font-weight:700;text-align:right;word-break:break-all;max-width:65%}
+
+/* ── STATUS GRID ──────────────────────────────────────────── */
+.sg{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-top:10px}
+.sp{padding:11px 4px;border-radius:var(--rs);border:1.5px solid var(--border);background:var(--surface);color:var(--ink2);font-size:11px;font-weight:800;font-family:inherit;cursor:pointer;text-align:center;transition:all .15s;letter-spacing:.2px}
+.sp.on{border-color:var(--ink);background:var(--ink);color:#fff}
 
 /* ── LOADING ──────────────────────────────────────────────── */
-.loading{
-  display:flex;align-items:center;justify-content:center;
-  gap:6px;padding:48px 20px;
-}
-.dot{
-  width:6px;height:6px;background:var(--ink3);border-radius:50%;
-  animation:pulse .8s ease-in-out infinite;
-}
-.dot:nth-child(2){animation-delay:.15s}
-.dot:nth-child(3){animation-delay:.3s}
-@keyframes pulse{0%,80%,100%{opacity:.3;transform:scale(.8)}40%{opacity:1;transform:scale(1)}}
+.ld{display:flex;align-items:center;justify-content:center;gap:5px;padding:56px 20px}
+.dt{width:5px;height:5px;background:var(--ink3);border-radius:50%;animation:pu .9s ease-in-out infinite}
+.dt:nth-child(2){animation-delay:.15s}
+.dt:nth-child(3){animation-delay:.3s}
+@keyframes pu{0%,80%,100%{opacity:.25;transform:scale(.7)}40%{opacity:1;transform:scale(1)}}
 
 /* ── EMPTY ────────────────────────────────────────────────── */
-.empty{
-  text-align:center;padding:60px 20px;color:var(--ink3);
-}
-.empty-icon{font-size:40px;margin-bottom:12px}
-.empty-title{font-size:15px;font-weight:700;color:var(--ink2);margin-bottom:4px}
-.empty-desc{font-size:13px;line-height:1.6}
+.em{text-align:center;padding:64px 20px;color:var(--ink3)}
+.em-ic{font-size:44px;margin-bottom:14px;opacity:.4}
+.em-t{font-size:16px;font-weight:800;color:var(--ink2);margin-bottom:5px;letter-spacing:-.3px}
+.em-d{font-size:13px;line-height:1.6}
 
 /* ── TOAST ────────────────────────────────────────────────── */
-.toast{
-  position:fixed;bottom:96px;left:50%;
-  transform:translateX(-50%) translateY(8px);
-  background:var(--ink);color:#fff;
-  padding:11px 22px;border-radius:24px;
-  font-size:13px;font-weight:600;
-  opacity:0;transition:all .2s;z-index:300;
-  white-space:nowrap;pointer-events:none;
-  box-shadow:0 4px 16px rgba(0,0,0,.2);
-}
-.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+.toast{position:fixed;bottom:90px;left:50%;transform:translateX(-50%) translateY(10px);background:var(--ink);color:#fff;padding:11px 22px;border-radius:24px;font-size:13px;font-weight:700;opacity:0;transition:all .22s;z-index:300;white-space:nowrap;pointer-events:none;box-shadow:0 4px 20px rgba(0,0,0,.2);letter-spacing:-.2px}
+.toast.on{opacity:1;transform:translateX(-50%) translateY(0)}
 
-/* ── WARN BANNER ──────────────────────────────────────────── */
-.warn-banner{
-  background:var(--accent-l);border-radius:var(--radius-s);
-  padding:12px 14px;margin-bottom:8px;
-  display:flex;align-items:center;gap:10px;
-}
-.warn-banner-dot{
-  width:8px;height:8px;border-radius:50%;
-  background:var(--accent);flex-shrink:0;
-}
-.warn-banner-text{font-size:12px;font-weight:600;color:var(--accent)}
+/* ── DIVIDER ──────────────────────────────────────────────── */
+.dv-line{height:1px;background:var(--border);margin:16px 0}
 
-/* ── PROFIT ROW ───────────────────────────────────────────── */
-.profit-row{
-  display:flex;justify-content:space-between;
-  align-items:center;padding:10px 0;
-  border-bottom:1px solid var(--border);
+/* ── EXPENSE TOTAL ───────────────────────────────────────── */
+.exp-total{
+  background:var(--ink);border-radius:var(--r);
+  padding:20px 22px;margin-bottom:12px;
 }
-.profit-row:last-child{border-bottom:none}
-.profit-label{font-size:12px;color:var(--ink2)}
-.profit-val{font-size:14px;font-weight:800;letter-spacing:-.3px}
+.exp-total-lbl{font-size:9px;font-weight:800;letter-spacing:1.5px;text-transform:uppercase;color:rgba(255,255,255,.4);margin-bottom:6px}
+.exp-total-num{font-size:36px;font-weight:900;letter-spacing:-2px;color:#fff;line-height:1}
 </style>
 </head>
 <body>
 
-<header>
-  <div class="wordmark">初<em>辣</em></div>
-  <button class="sync-btn" onclick="loadAll()">
-    <span id="sync-icon">↻</span> 更新
-  </button>
-</header>
+<!-- HEADER -->
+<div class="hd">
+  <div class="wm">初辣<div class="wm-dot"></div></div>
+  <button class="sync" onclick="loadAll()"><span id="sync-icon">↻</span> 更新</button>
+</div>
 
-<nav>
-  <button class="nav-item active" onclick="showPage('overview',this)">
-    <span class="nav-icon">◎</span>總覽
-  </button>
-  <button class="nav-item" onclick="showPage('orders',this)">
-    <span class="nav-icon">▤</span>訂單
-  </button>
-  <button class="nav-item" onclick="showPage('stock',this)">
-    <span class="nav-icon">◫</span>庫存
-  </button>
-  <button class="nav-item" onclick="showPage('expenses',this)">
-    <span class="nav-icon">◈</span>支出
-  </button>
-  <button class="nav-item" onclick="showPage('batches',this)">
-    <span class="nav-icon">⊙</span>生產
-  </button>
+<!-- NAV -->
+<nav class="nav">
+  <button class="ni on" onclick="showPage('overview',this)"><span class="ni-ico">◎</span>總覽</button>
+  <button class="ni" onclick="showPage('orders',this)"><span class="ni-ico">▤</span>訂單</button>
+  <button class="ni" onclick="showPage('stock',this)"><span class="ni-ico">◫</span>庫存</button>
+  <button class="ni" onclick="showPage('expenses',this)"><span class="ni-ico">◈</span>支出</button>
+  <button class="ni" onclick="showPage('batches',this)"><span class="ni-ico">⊙</span>生產</button>
 </nav>
 
-<button class="fab hidden" id="fab" onclick="openFab()">＋</button>
+<!-- FAB -->
+<button class="fab hid" id="fab" onclick="openFab()">＋</button>
 
-<!-- ══ 總覽 ═══════════════════════════════════════════════════ -->
-<div class="page active" id="page-overview">
-  <div id="overview-content">
-    <div class="loading"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div>
+<!-- PAGES -->
+<div class="pg on" id="page-overview">
+  <div class="ld"><div class="dt"></div><div class="dt"></div><div class="dt"></div></div>
+</div>
+<div class="pg" id="page-orders">
+  <div class="fil" id="orders-filter">
+    <button class="fp on" onclick="filterOrders('')" id="f-all">全部</button>
+    <button class="fp" onclick="filterOrders('待確認')" id="f-待確認">待確認</button>
+    <button class="fp" onclick="filterOrders('已確認')" id="f-已確認">已確認</button>
+    <button class="fp" onclick="filterOrders('備貨中')" id="f-備貨中">備貨中</button>
+    <button class="fp" onclick="filterOrders('已出貨')" id="f-已出貨">已出貨</button>
+    <button class="fp" onclick="filterOrders('已送達')" id="f-已送達">已送達</button>
   </div>
+  <div id="orders-content"><div class="ld"><div class="dt"></div><div class="dt"></div><div class="dt"></div></div></div>
+</div>
+<div class="pg" id="page-stock">
+  <div id="stock-content"><div class="ld"><div class="dt"></div><div class="dt"></div><div class="dt"></div></div></div>
+</div>
+<div class="pg" id="page-expenses">
+  <div id="expenses-content"><div class="ld"><div class="dt"></div><div class="dt"></div><div class="dt"></div></div></div>
+</div>
+<div class="pg" id="page-batches">
+  <div id="batches-content"><div class="ld"><div class="dt"></div><div class="dt"></div><div class="dt"></div></div></div>
 </div>
 
-<!-- ══ 訂單 ═══════════════════════════════════════════════════ -->
-<div class="page" id="page-orders">
-  <div class="filter-scroll" id="orders-filter">
-    <button class="f-pill active" onclick="filterOrders('')" id="f-all">全部</button>
-    <button class="f-pill" onclick="filterOrders('待確認')" id="f-待確認">待確認</button>
-    <button class="f-pill" onclick="filterOrders('已確認')" id="f-已確認">已確認</button>
-    <button class="f-pill" onclick="filterOrders('備貨中')" id="f-備貨中">備貨中</button>
-    <button class="f-pill" onclick="filterOrders('已出貨')" id="f-已出貨">已出貨</button>
-    <button class="f-pill" onclick="filterOrders('已送達')" id="f-已送達">已送達</button>
-  </div>
-  <div id="orders-content">
-    <div class="loading"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div>
-  </div>
-</div>
+<!-- MODALS -->
+<div class="mb" id="modal-order"><div class="mo"><div class="mh"></div><div class="mt" id="modal-order-title">訂單</div><div id="modal-order-body"></div><button class="btn btn-ghost" onclick="closeModal('modal-order')">關閉</button></div></div>
 
-<!-- ══ 庫存 ═══════════════════════════════════════════════════ -->
-<div class="page" id="page-stock">
-  <div id="stock-content">
-    <div class="loading"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div>
+<div class="mb" id="modal-expense"><div class="mo">
+  <div class="mh"></div><div class="mt">新增支出</div>
+  <div class="fg"><label class="fl">日期</label><input class="fi" type="date" id="exp-date"></div>
+  <div class="f2">
+    <div class="fg"><label class="fl">類別</label><select class="fi fi-s" id="exp-category"><option>原物料採購</option><option>包裝材料</option><option>市集攤位費</option><option>運費／寄件</option><option>設備工具</option><option>行銷設計</option><option>雜支</option></select></div>
+    <div class="fg"><label class="fl">金額（元）</label><input class="fi" type="number" id="exp-amount" placeholder="0"></div>
   </div>
-</div>
-
-<!-- ══ 支出 ═══════════════════════════════════════════════════ -->
-<div class="page" id="page-expenses">
-  <div id="expenses-content">
-    <div class="loading"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div>
+  <div class="fg"><label class="fl">項目說明</label><input class="fi" id="exp-desc" placeholder="例：雞心椒粉 300g"></div>
+  <div class="f2">
+    <div class="fg"><label class="fl">付款方式</label><select class="fi fi-s" id="exp-payment"><option>匯款</option><option>現金</option><option>信用卡</option><option>LINE Pay</option></select></div>
+    <div class="fg"><label class="fl">供應商</label><input class="fi" id="exp-supplier" placeholder="益昌實業"></div>
   </div>
-</div>
+  <div class="fg"><label class="fl">備註</label><input class="fi" id="exp-note" placeholder="選填"></div>
+  <button class="btn btn-blk" id="exp-submit" onclick="submitExpense()">儲存支出</button>
+  <button class="btn btn-ghost" onclick="closeModal('modal-expense')">取消</button>
+</div></div>
 
-<!-- ══ 生產批次 ════════════════════════════════════════════════ -->
-<div class="page" id="page-batches">
-  <div id="batches-content">
-    <div class="loading"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div>
+<div class="mb" id="modal-batch"><div class="mo">
+  <div class="mh"></div><div class="mt">新增生產批次</div>
+  <div class="f2">
+    <div class="fg"><label class="fl">生產日期</label><input class="fi" type="date" id="batch-date"></div>
+    <div class="fg"><label class="fl">負責人</label><input class="fi" id="batch-operator" placeholder="媽媽"></div>
   </div>
-</div>
-
-<!-- ══ MODALS ═════════════════════════════════════════════════ -->
-
-<!-- 訂單詳情 -->
-<div class="modal-bg" id="modal-order">
-  <div class="modal">
-    <div class="modal-handle"></div>
-    <div class="modal-title" id="modal-order-title">訂單</div>
-    <div id="modal-order-body"></div>
-    <button class="btn btn-ghost" onclick="closeModal('modal-order')">關閉</button>
+  <div class="f2">
+    <div class="fg"><label class="fl">產出瓶數</label><input class="fi" type="number" id="batch-qty" placeholder="22"></div>
+    <div class="fg"><label class="fl">包材成本（元）</label><input class="fi" type="number" id="batch-packaging" placeholder="0"></div>
   </div>
-</div>
-
-<!-- 新增支出 -->
-<div class="modal-bg" id="modal-expense">
-  <div class="modal">
-    <div class="modal-handle"></div>
-    <div class="modal-title">新增支出</div>
-    <div class="fg"><label class="fl">日期</label><input class="fi" type="date" id="exp-date"></div>
+  <div class="recipe-box">
+    <div class="recipe-lbl">配方用量</div>
     <div class="f2">
-      <div class="fg"><label class="fl">類別</label>
-        <select class="fi fi-select" id="exp-category">
-          <option>原物料採購</option><option>包裝材料</option><option>市集攤位費</option>
-          <option>運費／寄件</option><option>設備工具</option><option>行銷設計</option><option>雜支</option>
-        </select>
-      </div>
-      <div class="fg"><label class="fl">金額（元）</label><input class="fi" type="number" id="exp-amount" placeholder="0"></div>
+      <div class="fg" style="margin-bottom:8px"><label class="fl" style="margin-bottom:4px">葵花油 ml</label><input class="fi" type="number" id="b-oil" value="3000"></div>
+      <div class="fg" style="margin-bottom:8px"><label class="fl" style="margin-bottom:4px">魔鬼椒粉 g</label><input class="fi" type="number" id="b-devil" value="20"></div>
+      <div class="fg" style="margin-bottom:8px"><label class="fl" style="margin-bottom:4px">朝天椒粉 g</label><input class="fi" type="number" id="b-facing" value="130"></div>
+      <div class="fg" style="margin-bottom:8px"><label class="fl" style="margin-bottom:4px">雞心椒粉 g</label><input class="fi" type="number" id="b-heart" value="190"></div>
+      <div class="fg" style="margin-bottom:8px"><label class="fl" style="margin-bottom:4px">二荊條粉 g</label><input class="fi" type="number" id="b-ejing" value="100"></div>
+      <div class="fg" style="margin-bottom:8px"><label class="fl" style="margin-bottom:4px">大紅袍花椒 g</label><input class="fi" type="number" id="b-peppercorn" value="90"></div>
+      <div class="fg" style="margin-bottom:0"><label class="fl" style="margin-bottom:4px">匈牙利紅椒粉 g</label><input class="fi" type="number" id="b-hungary" value="20"></div>
     </div>
-    <div class="fg"><label class="fl">項目說明</label><input class="fi" id="exp-desc" placeholder="例：雞心椒粉 300g"></div>
-    <div class="f2">
-      <div class="fg"><label class="fl">付款方式</label>
-        <select class="fi fi-select" id="exp-payment">
-          <option>匯款</option><option>現金</option><option>信用卡</option><option>LINE Pay</option>
-        </select>
-      </div>
-      <div class="fg"><label class="fl">供應商</label><input class="fi" id="exp-supplier" placeholder="益昌實業"></div>
-    </div>
-    <div class="fg"><label class="fl">備註</label><input class="fi" id="exp-note" placeholder="選填"></div>
-    <button class="btn btn-accent" id="exp-submit" onclick="submitExpense()">儲存支出</button>
-    <button class="btn btn-ghost" onclick="closeModal('modal-expense')">取消</button>
   </div>
-</div>
+  <div class="fg"><label class="fl">備註</label><input class="fi" id="batch-note" placeholder="例：這批辣度調高了"></div>
+  <button class="btn btn-blk" id="batch-submit" onclick="submitBatch()">儲存批次</button>
+  <button class="btn btn-ghost" onclick="closeModal('modal-batch')">取消</button>
+</div></div>
 
-<!-- 新增生產批次 -->
-<div class="modal-bg" id="modal-batch">
-  <div class="modal">
-    <div class="modal-handle"></div>
-    <div class="modal-title">新增生產批次</div>
-    <div class="f2">
-      <div class="fg"><label class="fl">生產日期</label><input class="fi" type="date" id="batch-date"></div>
-      <div class="fg"><label class="fl">負責人</label><input class="fi" id="batch-operator" placeholder="媽媽"></div>
-    </div>
-    <div class="f2">
-      <div class="fg"><label class="fl">產出瓶數</label><input class="fi" type="number" id="batch-qty" placeholder="22"></div>
-      <div class="fg"><label class="fl">包材成本（元）</label><input class="fi" type="number" id="batch-packaging" placeholder="0"></div>
-    </div>
-    <div style="background:var(--bg);border-radius:var(--radius-s);padding:14px;margin-bottom:14px">
-      <div style="font-size:10px;font-weight:700;letter-spacing:1px;color:var(--ink3);text-transform:uppercase;margin-bottom:10px">配方用量</div>
-      <div class="f2">
-        <div class="fg" style="margin-bottom:8px"><label class="fl" style="margin-bottom:4px">葵花油 ml</label><input class="fi" type="number" id="b-oil" value="3000"></div>
-        <div class="fg" style="margin-bottom:8px"><label class="fl" style="margin-bottom:4px">魔鬼椒粉 g</label><input class="fi" type="number" id="b-devil" value="20"></div>
-        <div class="fg" style="margin-bottom:8px"><label class="fl" style="margin-bottom:4px">朝天椒粉 g</label><input class="fi" type="number" id="b-facing" value="130"></div>
-        <div class="fg" style="margin-bottom:8px"><label class="fl" style="margin-bottom:4px">雞心椒粉 g</label><input class="fi" type="number" id="b-heart" value="190"></div>
-        <div class="fg" style="margin-bottom:8px"><label class="fl" style="margin-bottom:4px">二荊條粉 g</label><input class="fi" type="number" id="b-ejing" value="100"></div>
-        <div class="fg" style="margin-bottom:8px"><label class="fl" style="margin-bottom:4px">大紅袍花椒 g</label><input class="fi" type="number" id="b-peppercorn" value="90"></div>
-        <div class="fg" style="margin-bottom:0"><label class="fl" style="margin-bottom:4px">匈牙利紅椒粉 g</label><input class="fi" type="number" id="b-hungary" value="20"></div>
-      </div>
-    </div>
-    <div class="fg"><label class="fl">備註</label><input class="fi" id="batch-note" placeholder="例：這批辣度調高了"></div>
-    <button class="btn btn-accent" id="batch-submit" onclick="submitBatch()">儲存批次</button>
-    <button class="btn btn-ghost" onclick="closeModal('modal-batch')">取消</button>
+<div class="mb" id="modal-addorder"><div class="mo">
+  <div class="mh"></div><div class="mt">新增訂單</div>
+  <div class="f2">
+    <div class="fg"><label class="fl">下單日期</label><input class="fi" type="date" id="ao-date"></div>
+    <div class="fg"><label class="fl">來源</label><select class="fi fi-s" id="ao-source"><option>朋友介紹</option><option>LINE官方帳號</option><option>市集現場</option><option>Instagram</option></select></div>
   </div>
-</div>
+  <div class="f2">
+    <div class="fg"><label class="fl">顧客姓名</label><input class="fi" id="ao-name" placeholder="姓名"></div>
+    <div class="fg"><label class="fl">手機</label><input class="fi" type="tel" id="ao-phone" placeholder="09xx"></div>
+  </div>
+  <div class="f2">
+    <div class="fg"><label class="fl">數量（瓶）</label><input class="fi" type="number" id="ao-qty" placeholder="1"></div>
+    <div class="fg"><label class="fl">單價（元）</label><input class="fi" type="number" id="ao-price" value="220"></div>
+  </div>
+  <div class="fg"><label class="fl">配送方式</label><select class="fi fi-s" id="ao-delivery"><option>宅配到府</option><option>超商取貨</option><option>面交</option></select></div>
+  <div class="fg"><label class="fl">收件地址</label><input class="fi" id="ao-address" placeholder="宅配地址或超商門市"></div>
+  <div class="f2">
+    <div class="fg"><label class="fl">收款方式</label><select class="fi fi-s" id="ao-payment"><option>匯款</option><option>LINE Pay</option><option>現金</option></select></div>
+    <div class="fg"><label class="fl">LINE名稱</label><input class="fi" id="ao-line" placeholder="選填"></div>
+  </div>
+  <div class="fg"><label class="fl">備註</label><input class="fi" id="ao-note" placeholder="選填"></div>
+  <button class="btn btn-blk" id="ao-submit" onclick="submitAddOrder()">新增訂單</button>
+  <button class="btn btn-ghost" onclick="closeModal('modal-addorder')">取消</button>
+</div></div>
 
-<!-- 手動新增訂單 -->
-<div class="modal-bg" id="modal-addorder">
-  <div class="modal">
-    <div class="modal-handle"></div>
-    <div class="modal-title">新增訂單</div>
-    <div class="f2">
-      <div class="fg"><label class="fl">下單日期</label><input class="fi" type="date" id="ao-date"></div>
-      <div class="fg"><label class="fl">來源</label>
-        <select class="fi fi-select" id="ao-source">
-          <option>朋友介紹</option><option>LINE官方帳號</option><option>市集現場</option><option>Instagram</option>
-        </select>
-      </div>
-    </div>
-    <div class="f2">
-      <div class="fg"><label class="fl">顧客姓名</label><input class="fi" id="ao-name" placeholder="姓名"></div>
-      <div class="fg"><label class="fl">手機</label><input class="fi" type="tel" id="ao-phone" placeholder="09xx"></div>
-    </div>
-    <div class="f2">
-      <div class="fg"><label class="fl">數量（瓶）</label><input class="fi" type="number" id="ao-qty" placeholder="1"></div>
-      <div class="fg"><label class="fl">單價（元）</label><input class="fi" type="number" id="ao-price" value="220"></div>
-    </div>
-    <div class="fg"><label class="fl">配送方式</label>
-      <select class="fi fi-select" id="ao-delivery">
-        <option>宅配到府</option><option>超商取貨</option><option>面交</option>
-      </select>
-    </div>
-    <div class="fg"><label class="fl">收件地址</label><input class="fi" id="ao-address" placeholder="宅配地址或超商門市"></div>
-    <div class="f2">
-      <div class="fg"><label class="fl">收款方式</label>
-        <select class="fi fi-select" id="ao-payment">
-          <option>匯款</option><option>LINE Pay</option><option>現金</option>
-        </select>
-      </div>
-      <div class="fg"><label class="fl">LINE名稱</label><input class="fi" id="ao-line" placeholder="選填"></div>
-    </div>
-    <div class="fg"><label class="fl">備註</label><input class="fi" id="ao-note" placeholder="選填"></div>
-    <button class="btn btn-accent" id="ao-submit" onclick="submitAddOrder()">新增訂單</button>
-    <button class="btn btn-ghost" onclick="closeModal('modal-addorder')">取消</button>
+<div class="mb" id="modal-edit-order"><div class="mo">
+  <div class="mh"></div><div class="mt">編輯訂單</div>
+  <input type="hidden" id="eo-id">
+  <div class="f2">
+    <div class="fg"><label class="fl">下單日期</label><input class="fi" type="date" id="eo-date"></div>
+    <div class="fg"><label class="fl">來源</label><select class="fi fi-s" id="eo-source"><option>朋友介紹</option><option>Google表單</option><option>LINE官方帳號</option><option>市集現場</option><option>Instagram</option></select></div>
   </div>
-</div>
+  <div class="f2">
+    <div class="fg"><label class="fl">顧客姓名</label><input class="fi" id="eo-name"></div>
+    <div class="fg"><label class="fl">手機</label><input class="fi" type="tel" id="eo-phone"></div>
+  </div>
+  <div class="f2">
+    <div class="fg"><label class="fl">數量（瓶）</label><input class="fi" type="number" id="eo-qty"></div>
+    <div class="fg"><label class="fl">單價（元）</label><input class="fi" type="number" id="eo-price"></div>
+  </div>
+  <div class="f2">
+    <div class="fg"><label class="fl">配送方式</label><select class="fi fi-s" id="eo-delivery"><option>宅配到府</option><option>超商取貨</option><option>面交</option></select></div>
+    <div class="fg"><label class="fl">LINE名稱</label><input class="fi" id="eo-line"></div>
+  </div>
+  <div class="fg"><label class="fl">收件人姓名</label><input class="fi" id="eo-recvname"></div>
+  <div class="fg"><label class="fl">收件人手機</label><input class="fi" type="tel" id="eo-recvphone"></div>
+  <div class="fg"><label class="fl">地址</label><input class="fi" id="eo-address"></div>
+  <div class="f2">
+    <div class="fg"><label class="fl">超商品牌</label><input class="fi" id="eo-convbrand"></div>
+    <div class="fg"><label class="fl">門市店號</label><input class="fi" id="eo-convstore"></div>
+  </div>
+  <div class="fg"><label class="fl">備註</label><input class="fi" id="eo-note"></div>
+  <button class="btn btn-blk" id="eo-submit" onclick="submitEditOrder()">儲存修改</button>
+  <button class="btn btn-ghost" onclick="closeModal('modal-edit-order')">取消</button>
+</div></div>
 
-<!-- 編輯訂單 -->
-<div class="modal-bg" id="modal-edit-order">
-  <div class="modal">
-    <div class="modal-handle"></div>
-    <div class="modal-title">編輯訂單</div>
-    <input type="hidden" id="eo-id">
-    <div class="f2">
-      <div class="fg"><label class="fl">下單日期</label><input class="fi" type="date" id="eo-date"></div>
-      <div class="fg"><label class="fl">來源</label>
-        <select class="fi fi-select" id="eo-source">
-          <option>朋友介紹</option><option>Google表單</option><option>LINE官方帳號</option><option>市集現場</option><option>Instagram</option>
-        </select>
-      </div>
-    </div>
-    <div class="f2">
-      <div class="fg"><label class="fl">顧客姓名</label><input class="fi" id="eo-name"></div>
-      <div class="fg"><label class="fl">手機</label><input class="fi" type="tel" id="eo-phone"></div>
-    </div>
-    <div class="f2">
-      <div class="fg"><label class="fl">數量（瓶）</label><input class="fi" type="number" id="eo-qty"></div>
-      <div class="fg"><label class="fl">單價（元）</label><input class="fi" type="number" id="eo-price"></div>
-    </div>
-    <div class="f2">
-      <div class="fg"><label class="fl">配送方式</label>
-        <select class="fi fi-select" id="eo-delivery">
-          <option>宅配到府</option><option>超商取貨</option><option>面交</option>
-        </select>
-      </div>
-      <div class="fg"><label class="fl">LINE名稱</label><input class="fi" id="eo-line"></div>
-    </div>
-    <div class="fg"><label class="fl">收件人姓名</label><input class="fi" id="eo-recvname"></div>
-    <div class="fg"><label class="fl">收件人手機</label><input class="fi" type="tel" id="eo-recvphone"></div>
-    <div class="fg"><label class="fl">地址</label><input class="fi" id="eo-address"></div>
-    <div class="f2">
-      <div class="fg"><label class="fl">超商品牌</label><input class="fi" id="eo-convbrand"></div>
-      <div class="fg"><label class="fl">門市店號</label><input class="fi" id="eo-convstore"></div>
-    </div>
-    <div class="fg"><label class="fl">備註</label><input class="fi" id="eo-note"></div>
-    <button class="btn btn-primary" id="eo-submit" onclick="submitEditOrder()">儲存修改</button>
-    <button class="btn btn-ghost" onclick="closeModal('modal-edit-order')">取消</button>
+<div class="mb" id="modal-edit-expense"><div class="mo">
+  <div class="mh"></div><div class="mt">編輯支出</div>
+  <input type="hidden" id="ee-rowindex">
+  <div class="fg"><label class="fl">日期</label><input class="fi" type="date" id="ee-date"></div>
+  <div class="f2">
+    <div class="fg"><label class="fl">類別</label><select class="fi fi-s" id="ee-category"><option>原物料採購</option><option>包裝材料</option><option>市集攤位費</option><option>運費／寄件</option><option>設備工具</option><option>行銷設計</option><option>雜支</option></select></div>
+    <div class="fg"><label class="fl">金額（元）</label><input class="fi" type="number" id="ee-amount"></div>
   </div>
-</div>
+  <div class="fg"><label class="fl">項目說明</label><input class="fi" id="ee-desc"></div>
+  <div class="f2">
+    <div class="fg"><label class="fl">付款方式</label><select class="fi fi-s" id="ee-payment"><option>匯款</option><option>現金</option><option>信用卡</option><option>LINE Pay</option></select></div>
+    <div class="fg"><label class="fl">供應商</label><input class="fi" id="ee-supplier"></div>
+  </div>
+  <div class="fg"><label class="fl">備註</label><input class="fi" id="ee-note"></div>
+  <button class="btn btn-blk" id="ee-submit" onclick="submitEditExpense()">儲存修改</button>
+  <button class="btn btn-ghost" onclick="closeModal('modal-edit-expense')">取消</button>
+</div></div>
 
-<!-- 編輯支出 -->
-<div class="modal-bg" id="modal-edit-expense">
-  <div class="modal">
-    <div class="modal-handle"></div>
-    <div class="modal-title">編輯支出</div>
-    <input type="hidden" id="ee-rowindex">
-    <div class="fg"><label class="fl">日期</label><input class="fi" type="date" id="ee-date"></div>
-    <div class="f2">
-      <div class="fg"><label class="fl">類別</label>
-        <select class="fi fi-select" id="ee-category">
-          <option>原物料採購</option><option>包裝材料</option><option>市集攤位費</option>
-          <option>運費／寄件</option><option>設備工具</option><option>行銷設計</option><option>雜支</option>
-        </select>
-      </div>
-      <div class="fg"><label class="fl">金額（元）</label><input class="fi" type="number" id="ee-amount"></div>
-    </div>
-    <div class="fg"><label class="fl">項目說明</label><input class="fi" id="ee-desc"></div>
-    <div class="f2">
-      <div class="fg"><label class="fl">付款方式</label>
-        <select class="fi fi-select" id="ee-payment">
-          <option>匯款</option><option>現金</option><option>信用卡</option><option>LINE Pay</option>
-        </select>
-      </div>
-      <div class="fg"><label class="fl">供應商</label><input class="fi" id="ee-supplier"></div>
-    </div>
-    <div class="fg"><label class="fl">備註</label><input class="fi" id="ee-note"></div>
-    <button class="btn btn-primary" id="ee-submit" onclick="submitEditExpense()">儲存修改</button>
-    <button class="btn btn-ghost" onclick="closeModal('modal-edit-expense')">取消</button>
+<div class="mb" id="modal-edit-batch"><div class="mo">
+  <div class="mh"></div><div class="mt">編輯批次</div>
+  <input type="hidden" id="eb-rowindex">
+  <div class="f2">
+    <div class="fg"><label class="fl">生產日期</label><input class="fi" type="date" id="eb-date"></div>
+    <div class="fg"><label class="fl">負責人</label><input class="fi" id="eb-operator"></div>
   </div>
-</div>
+  <div class="f2">
+    <div class="fg"><label class="fl">產出瓶數</label><input class="fi" type="number" id="eb-qty"></div>
+    <div class="fg"><label class="fl">包材成本（元）</label><input class="fi" type="number" id="eb-packaging"></div>
+  </div>
+  <div class="recipe-box">
+    <div class="recipe-lbl">配方用量</div>
+    <div class="f2">
+      <div class="fg" style="margin-bottom:8px"><label class="fl" style="margin-bottom:4px">葵花油 ml</label><input class="fi" type="number" id="eb-oil"></div>
+      <div class="fg" style="margin-bottom:8px"><label class="fl" style="margin-bottom:4px">魔鬼椒粉 g</label><input class="fi" type="number" id="eb-devil"></div>
+      <div class="fg" style="margin-bottom:8px"><label class="fl" style="margin-bottom:4px">朝天椒粉 g</label><input class="fi" type="number" id="eb-facing"></div>
+      <div class="fg" style="margin-bottom:8px"><label class="fl" style="margin-bottom:4px">雞心椒粉 g</label><input class="fi" type="number" id="eb-heart"></div>
+      <div class="fg" style="margin-bottom:8px"><label class="fl" style="margin-bottom:4px">二荊條粉 g</label><input class="fi" type="number" id="eb-ejing"></div>
+      <div class="fg" style="margin-bottom:8px"><label class="fl" style="margin-bottom:4px">大紅袍花椒 g</label><input class="fi" type="number" id="eb-peppercorn"></div>
+      <div class="fg" style="margin-bottom:0"><label class="fl" style="margin-bottom:4px">匈牙利紅椒粉 g</label><input class="fi" type="number" id="eb-hungary"></div>
+    </div>
+  </div>
+  <div class="fg"><label class="fl">備註</label><input class="fi" id="eb-note"></div>
+  <button class="btn btn-blk" id="eb-submit" onclick="submitEditBatch()">儲存修改</button>
+  <button class="btn btn-ghost" onclick="closeModal('modal-edit-batch')">取消</button>
+</div></div>
 
-<!-- 編輯生產批次 -->
-<div class="modal-bg" id="modal-edit-batch">
-  <div class="modal">
-    <div class="modal-handle"></div>
-    <div class="modal-title">編輯批次</div>
-    <input type="hidden" id="eb-rowindex">
-    <div class="f2">
-      <div class="fg"><label class="fl">生產日期</label><input class="fi" type="date" id="eb-date"></div>
-      <div class="fg"><label class="fl">負責人</label><input class="fi" id="eb-operator"></div>
-    </div>
-    <div class="f2">
-      <div class="fg"><label class="fl">產出瓶數</label><input class="fi" type="number" id="eb-qty"></div>
-      <div class="fg"><label class="fl">包材成本（元）</label><input class="fi" type="number" id="eb-packaging"></div>
-    </div>
-    <div style="background:var(--bg);border-radius:var(--radius-s);padding:14px;margin-bottom:14px">
-      <div style="font-size:10px;font-weight:700;letter-spacing:1px;color:var(--ink3);text-transform:uppercase;margin-bottom:10px">配方用量</div>
-      <div class="f2">
-        <div class="fg" style="margin-bottom:8px"><label class="fl" style="margin-bottom:4px">葵花油 ml</label><input class="fi" type="number" id="eb-oil"></div>
-        <div class="fg" style="margin-bottom:8px"><label class="fl" style="margin-bottom:4px">魔鬼椒粉 g</label><input class="fi" type="number" id="eb-devil"></div>
-        <div class="fg" style="margin-bottom:8px"><label class="fl" style="margin-bottom:4px">朝天椒粉 g</label><input class="fi" type="number" id="eb-facing"></div>
-        <div class="fg" style="margin-bottom:8px"><label class="fl" style="margin-bottom:4px">雞心椒粉 g</label><input class="fi" type="number" id="eb-heart"></div>
-        <div class="fg" style="margin-bottom:8px"><label class="fl" style="margin-bottom:4px">二荊條粉 g</label><input class="fi" type="number" id="eb-ejing"></div>
-        <div class="fg" style="margin-bottom:8px"><label class="fl" style="margin-bottom:4px">大紅袍花椒 g</label><input class="fi" type="number" id="eb-peppercorn"></div>
-        <div class="fg" style="margin-bottom:0"><label class="fl" style="margin-bottom:4px">匈牙利紅椒粉 g</label><input class="fi" type="number" id="eb-hungary"></div>
-      </div>
-    </div>
-    <div class="fg"><label class="fl">備註</label><input class="fi" id="eb-note"></div>
-    <button class="btn btn-primary" id="eb-submit" onclick="submitEditBatch()">儲存修改</button>
-    <button class="btn btn-ghost" onclick="closeModal('modal-edit-batch')">取消</button>
+<div class="mb" id="modal-edit-stock"><div class="mo">
+  <div class="mh"></div><div class="mt" id="es-title">編輯品項</div>
+  <input type="hidden" id="es-name">
+  <input type="hidden" id="es-idx">
+  <div class="f2">
+    <div class="fg"><label class="fl">採購規格數量</label><input class="fi" type="number" id="es-specqty"></div>
+    <div class="fg"><label class="fl">採購價（元）</label><input class="fi" type="number" id="es-price"></div>
   </div>
-</div>
-
-<!-- 編輯庫存品項 -->
-<div class="modal-bg" id="modal-edit-stock">
-  <div class="modal">
-    <div class="modal-handle"></div>
-    <div class="modal-title" id="es-title">編輯品項</div>
-    <input type="hidden" id="es-name">
-    <input type="hidden" id="es-idx">
-    <div class="f2">
-      <div class="fg"><label class="fl">採購規格數量</label><input class="fi" type="number" id="es-specqty" placeholder="例：300"></div>
-      <div class="fg"><label class="fl">採購價（元）</label><input class="fi" type="number" id="es-price" placeholder="例：135"></div>
-    </div>
-    <div class="f2">
-      <div class="fg"><label class="fl">現有數量</label><input class="fi" type="number" id="es-currentqty"></div>
-      <div class="fg"><label class="fl">安全庫存量</label><input class="fi" type="number" id="es-safeqty"></div>
-    </div>
-    <div class="fg"><label class="fl">供應商</label><input class="fi" id="es-supplier"></div>
-    <div class="fg"><label class="fl">備註</label><input class="fi" id="es-note"></div>
-    <button class="btn btn-primary" id="es-submit" onclick="submitEditStock()">儲存修改</button>
-    <button class="btn btn-ghost" onclick="closeModal('modal-edit-stock')">取消</button>
+  <div class="f2">
+    <div class="fg"><label class="fl">現有數量</label><input class="fi" type="number" id="es-currentqty"></div>
+    <div class="fg"><label class="fl">安全庫存量</label><input class="fi" type="number" id="es-safeqty"></div>
   </div>
-</div>
+  <div class="fg"><label class="fl">供應商</label><input class="fi" id="es-supplier"></div>
+  <div class="fg"><label class="fl">備註</label><input class="fi" id="es-note"></div>
+  <button class="btn btn-blk" id="es-submit" onclick="submitEditStock()">儲存修改</button>
+  <button class="btn btn-ghost" onclick="closeModal('modal-edit-stock')">取消</button>
+</div></div>
 
 <div class="toast" id="toast"></div>
 
 <script>
+
+// ── 核心工具函式（最先定義）────────────────────────────────
+function fmt(n) {
+  var num = parseFloat(n);
+  if (isNaN(num)) return '—';
+  return num.toLocaleString('zh-TW');
+}
+function fmtDate(d) {
+  if (!d) return '—';
+  var dt = new Date(d);
+  if (isNaN(dt.getTime())) return String(d).substring(0,10);
+  return (dt.getMonth()+1) + '/' + dt.getDate();
+}
+function today() { return new Date().toISOString().split('T')[0]; }
+function statusBadge(s) {
+  var map = {'待確認':'b-pending','已確認':'b-confirmed','備貨中':'b-packing','已出貨':'b-shipped','已送達':'b-done','已取消':'b-cancelled'};
+  return map[s] || 'b-pending';
+}
+
 
 const API = "https://script.google.com/macros/s/AKfycbycsADk9T9TGLXjAMmSWpe32fK4Tgv5U7aSKTg5TEyaAaXes2kV6hZKNEF4_f4HIyXc/exec";
 
@@ -1370,6 +1235,281 @@ async function loadBatches() {
 }
 
 // ── 初始載入 ─────────────────────────────────────────────────
+loadOverview();
+
+
+// ── render 函式（全部重寫使用新 CSS class）───────────────────
+
+async function loadOverview() {
+  var el = document.getElementById('page-overview');
+  el.innerHTML = '<div class="ld"><div class="dt"></div><div class="dt"></div><div class="dt"></div></div>';
+  try {
+    var d = await apiGet('overview');
+    var profit = d.monthProfit;
+    var lowItems = d.lowStock || [];
+    var warnHtml = '';
+    if (lowItems.length > 0) {
+      warnHtml = '<div class="lbl">庫存警示</div>';
+      lowItems.forEach(function(s) {
+        warnHtml += '<div class="warn-item"><div class="warn-pip"></div><div class="warn-txt">' +
+          s.name + '　' + (s.qty == 0 ? '已缺貨' : '現有 ' + s.qty + '，低於安全庫存') +
+          '</div></div>';
+      });
+    }
+    el.innerHTML =
+      '<div class="lbl">本月財務</div>' +
+      '<div class="hero">' +
+        '<div class="hero-lbl">結餘</div>' +
+        '<div class="hero-num">$' + fmt(profit) + '</div>' +
+        '<div class="hero-sub">收入 <span>$' + fmt(d.monthRevenue) + '</span>　支出 <span>$' + fmt(d.monthExpense) + '</span></div>' +
+      '</div>' +
+      '<div class="stat-row">' +
+        '<div class="stat" id="ov-ord"><div class="stat-lbl">本月訂單</div><div class="stat-num">' + d.monthOrders + '</div><div class="stat-unit">筆</div></div>' +
+        '<div class="stat" id="ov-pend"><div class="stat-lbl">待處理</div><div class="stat-num' + (d.pendingCount > 0 ? ' hi' : '') + '">' + d.pendingCount + '</div><div class="stat-unit">筆訂單</div></div>' +
+      '</div>' +
+      warnHtml +
+      '<div class="lbl">收支明細</div>' +
+      '<div class="sum-card">' +
+        '<div class="sum-row"><span class="sum-key">總收入</span><span class="sum-val pos">$' + fmt(d.monthRevenue) + '</span></div>' +
+        '<div class="sum-row"><span class="sum-key">總支出</span><span class="sum-val neg">$' + fmt(d.monthExpense) + '</span></div>' +
+        '<div class="sum-row"><span class="sum-key" style="font-weight:700">結餘</span><span class="sum-val ' + (profit >= 0 ? 'pos' : 'neg') + '" style="font-size:17px">$' + fmt(profit) + '</span></div>' +
+      '</div>' +
+      '<div style="font-size:10px;color:var(--ink3);text-align:right;margin-top:8px">' + new Date().toLocaleString('zh-TW',{month:'numeric',day:'numeric',hour:'2-digit',minute:'2-digit'}) + ' 更新</div>';
+
+    var ob = document.getElementById('ov-ord');
+    if (ob) ob.addEventListener('click', function() { showPage('orders', document.querySelectorAll('.ni')[1]); filterOrders(''); });
+    var pb = document.getElementById('ov-pend');
+    if (pb) pb.addEventListener('click', function() { showPage('orders', document.querySelectorAll('.ni')[1]); filterOrders('待確認'); });
+  } catch(e) {
+    el.innerHTML = '<div class="em"><div class="em-ic">⚠</div><div class="em-t">連線失敗</div><div class="em-d">' + e.message + '</div></div>';
+  }
+}
+
+async function loadOrders() {
+  var el = document.getElementById('orders-content');
+  el.innerHTML = '<div class="ld"><div class="dt"></div><div class="dt"></div><div class="dt"></div></div>';
+  try {
+    allOrders = await apiGet('orders');
+    renderOrders();
+  } catch(e) {
+    el.innerHTML = '<div class="em"><div class="em-ic">⚠</div><div class="em-t">載入失敗</div><div class="em-d">' + e.message + '</div></div>';
+  }
+}
+
+function renderOrders() {
+  var el = document.getElementById('orders-content');
+  var list = currentFilter ? allOrders.filter(function(o) { return o['訂單狀態'] === currentFilter; }) : allOrders;
+  if (!list.length) {
+    el.innerHTML = '<div class="em"><div class="em-ic">▤</div><div class="em-t">沒有訂單</div><div class="em-d">符合條件的訂單會顯示在這裡</div></div>';
+    return;
+  }
+  var rows = list.map(function(o) {
+    var qty = o['訂購數量（瓶）'] || o['訂購數量'] || '—';
+    return '<div class="lr" onclick="openOrder(' + JSON.stringify(o).replace(/"/g,'&quot;') + ')">' +
+      '<div class="lr-l">' +
+        '<div class="lr-title">' + (o['訂購人姓名']||'—') + ' <span style="font-size:11px;color:var(--ink3);font-weight:500">' + (o['訂單編號']||'') + '</span></div>' +
+        '<div class="lr-sub">' + fmtDate(o['下單日期']) + '　' + qty + '瓶　' + (o['配送方式']||'') + '</div>' +
+      '</div>' +
+      '<div class="lr-r">' +
+        '<div class="lr-amt">$' + fmt(o['訂單金額']) + '</div>' +
+        '<span class="bd ' + statusBadge(o['訂單狀態']) + '">' + (o['訂單狀態']||'—') + '</span>' +
+      '</div>' +
+    '</div>';
+  }).join('');
+  el.innerHTML = '<div class="lc">' + rows + '</div>';
+}
+
+function filterOrders(status) {
+  currentFilter = status;
+  document.querySelectorAll('.fp').forEach(function(b) { b.classList.remove('on'); });
+  var active = document.getElementById('f-' + (status || 'all'));
+  if (active) active.classList.add('on');
+  renderOrders();
+}
+
+async function loadStock() {
+  var el = document.getElementById('stock-content');
+  el.innerHTML = '<div class="ld"><div class="dt"></div><div class="dt"></div><div class="dt"></div></div>';
+  try {
+    stockData = await apiGet('stock');
+    renderStock();
+  } catch(e) {
+    el.innerHTML = '<div class="em"><div class="em-ic">⚠</div><div class="em-t">載入失敗</div><div class="em-d">' + e.message + '</div></div>';
+  }
+}
+
+function renderStock() {
+  var el = document.getElementById('stock-content');
+  if (!stockData.length) {
+    el.innerHTML = '<div class="em"><div class="em-ic">◫</div><div class="em-t">沒有庫存資料</div></div>';
+    return;
+  }
+  var cats = [];
+  stockData.forEach(function(s) { var c = s['分類']||'其他'; if (cats.indexOf(c) < 0) cats.push(c); });
+  var html2 = '';
+  cats.forEach(function(cat) {
+    html2 += '<div class="lbl">' + cat + '</div>';
+    stockData.filter(function(s) { return (s['分類']||'其他') === cat; }).forEach(function(s) {
+      var qty = parseFloat(s['現有數量']) || 0;
+      var safe = parseFloat(s['安全庫存量']) || 0;
+      var isLow = qty === 0 || (safe > 0 && qty <= safe);
+      var gi = stockData.indexOf(s);
+      var badge = isLow
+        ? '<span class="bd ' + (qty===0?'b-warn':'b-low') + '">' + (qty===0?'缺貨':'偏低') + '</span>'
+        : '<span class="bd b-ok">正常</span>';
+      html2 += '<div class="sk">' +
+        '<div class="sk-top"><div><div class="sk-name">' + (s['品項名稱']||'') + '</div><div class="sk-meta">' + (s['單位']||'') + '　安全庫存 ' + safe + '</div></div>' + badge + '</div>' +
+        '<div class="sk-ctrl"><button class="qb" onclick="changeQty(' + gi + ',-1)">−</button><input class="qi" id="qty-' + gi + '" value="' + qty + '" onchange="qtyChanged(' + gi + ')"><button class="qb" onclick="changeQty(' + gi + ',1)">＋</button></div>' +
+        '<div class="sk-btns"><button class="sk-btn sk-save" onclick="saveQty(' + gi + ')">更新數量</button><button class="sk-btn sk-edit" onclick="openEditStockByIdx(' + gi + ')">編輯資料</button></div>' +
+        '</div>';
+    });
+  });
+  el.innerHTML = html2;
+}
+
+async function loadExpenses() {
+  var el = document.getElementById('expenses-content');
+  el.innerHTML = '<div class="ld"><div class="dt"></div><div class="dt"></div><div class="dt"></div></div>';
+  try {
+    var data = await apiGet('expenses');
+    expenseDataCache = data;
+    if (!data.length) {
+      el.innerHTML = '<div class="em"><div class="em-ic">◈</div><div class="em-t">還沒有支出記錄</div><div class="em-d">點右下角 ＋ 新增</div></div>';
+      return;
+    }
+    var now = new Date();
+    var monthTotal = 0;
+    data.forEach(function(r) {
+      var d = new Date(r['日期']);
+      if (d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear()) monthTotal += parseFloat(r['金額（元）']) || 0;
+    });
+    var rows = data.map(function(r, idx) {
+      return '<div class="lr" onclick="openEditExpense(' + JSON.stringify(r).replace(/"/g,'&quot;') + ',' + idx + ')">' +
+        '<div class="lr-l"><div class="lr-title">' + (r['項目說明']||'—') + '</div><div class="lr-sub">' + fmtDate(r['日期']) + '　' + (r['類別']||'') + (r['供應商／對象']?'　'+r['供應商／對象']:'') + '</div></div>' +
+        '<div class="lr-r"><div class="lr-amt">$' + fmt(r['金額（元）']) + '</div></div>' +
+      '</div>';
+    }).join('');
+    el.innerHTML =
+      '<div class="exp-total"><div class="exp-total-lbl">本月支出合計</div><div class="exp-total-num">$' + fmt(monthTotal) + '</div></div>' +
+      '<div class="lbl">所有記錄</div><div class="lc">' + rows + '</div>';
+  } catch(e) {
+    el.innerHTML = '<div class="em"><div class="em-ic">⚠</div><div class="em-t">載入失敗</div><div class="em-d">' + e.message + '</div></div>';
+  }
+}
+
+async function loadBatches() {
+  var el = document.getElementById('batches-content');
+  el.innerHTML = '<div class="ld"><div class="dt"></div><div class="dt"></div><div class="dt"></div></div>';
+  try {
+    var data = await apiGet('batches');
+    if (!data.length) {
+      el.innerHTML = '<div class="em"><div class="em-ic">⊙</div><div class="em-t">還沒有生產記錄</div><div class="em-d">點右下角 ＋ 新增批次</div></div>';
+      return;
+    }
+    var rows = data.map(function(r, idx) {
+      return '<div class="lr" onclick="openEditBatch(' + JSON.stringify(r).replace(/"/g,'&quot;') + ',' + idx + ')">' +
+        '<div class="lr-l"><div class="lr-title">' + (r['批次編號']||'—') + ' <span style="font-size:11px;color:var(--ink3);font-weight:500">' + (r['負責人']||'') + '</span></div><div class="lr-sub">' + fmtDate(r['生產日期']) + '　' + (r['備註']||'') + '</div></div>' +
+        '<div class="lr-r"><div class="lr-amt">' + (r['產出瓶數']||'—') + ' 瓶</div><div style="font-size:11px;color:var(--ink3)">每瓶 $' + (r['每瓶成本'] ? Math.round(parseFloat(r['每瓶成本'])) : '—') + '</div></div>' +
+      '</div>';
+    }).join('');
+    el.innerHTML = '<div class="lc">' + rows + '</div>';
+  } catch(e) {
+    el.innerHTML = '<div class="em"><div class="em-ic">⚠</div><div class="em-t">載入失敗</div><div class="em-d">' + e.message + '</div></div>';
+  }
+}
+
+function openOrder(o) {
+  var statusList = ['待確認','已確認','備貨中','已出貨','已送達'];
+  var cur = o['訂單狀態'] || '';
+  document.getElementById('modal-order-title').textContent = o['訂單編號'] || '訂單詳情';
+  var sPills = statusList.map(function(s) {
+    return '<button onclick="updateStatus('' + o['訂單編號'] + '','' + s + '',this)" class="sp' + (cur===s?' on':'') + '">' + s + '</button>';
+  }).join('');
+  var isPaid = o['收款狀態'] === '已付款';
+  var qty = o['訂購數量（瓶）'] || o['訂購數量'] || '—';
+  document.getElementById('modal-order-body').innerHTML =
+    detailRow('顧客', o['訂購人姓名']) +
+    detailRow('手機', o['訂購人手機']) +
+    detailRow('LINE', o['LINE名稱']) +
+    detailRow('來源', o['來源管道']) +
+    detailRow('數量', qty + ' 瓶') +
+    detailRow('金額', '$' + fmt(o['訂單金額'])) +
+    '<div class="dv-line"></div>' +
+    detailRow('配送', o['配送方式']) +
+    detailRow('收件人', o['收件人姓名']) +
+    detailRow('地址', o['收件地址']) +
+    (o['超商品牌'] ? detailRow('超商', o['超商品牌'] + ' ' + (o['門市店號']||'')) : '') +
+    '<div class="dv-line"></div>' +
+    detailRow('收款', '<span class="bd ' + (isPaid?'b-paid':'b-unpaid') + '">' + (o['收款狀態']||'未付款') + '</span>') +
+    detailRow('物流單號', o['物流單號'] || '—') +
+    (o['備註'] ? detailRow('備註', o['備註']) : '') +
+    '<div style="margin-top:16px;display:flex;gap:8px">' +
+      '<button class="btn btn-blk" style="flex:1;margin-top:0;background:' + (isPaid?'#ccc':'var(--green)') + '" onclick="markPaid('' + o['訂單編號'] + '','' + o['收款狀態'] + '')">' + (isPaid?'已收款 ✓':'標記已收款') + '</button>' +
+      '<button class="btn btn-blk" style="flex:1;margin-top:0;background:var(--dim)" onclick="openEditOrderById('' + o['訂單編號'] + '')">編輯</button>' +
+    '</div>' +
+    '<div style="margin-top:16px"><div class="lbl" style="margin-top:0">更新狀態</div><div class="sg">' + sPills + '</div></div>' +
+    (!o['物流單號'] ?
+      '<div style="margin-top:12px;display:flex;gap:8px"><input class="fi" id="track-input" placeholder="填入物流單號" style="flex:1"><button class="btn btn-blk" style="width:auto;padding:13px 16px;margin-top:0" onclick="saveTrackNo('' + o['訂單編號'] + '')">儲存</button></div>'
+    : '');
+  document.getElementById('modal-order').classList.add('on');
+}
+
+function detailRow(k, v) {
+  return '<div class="dr"><span class="dk">' + k + '</span><span class="dv">' + (v||'—') + '</span></div>';
+}
+
+function showPage(id, el) {
+  document.querySelectorAll('.pg').forEach(function(p) { p.classList.remove('on'); });
+  document.querySelectorAll('.ni').forEach(function(n) { n.classList.remove('on'); });
+  document.getElementById('page-'+id).classList.add('on');
+  if (el) el.classList.add('on');
+  currentPage = id;
+  var fab = document.getElementById('fab');
+  fab.classList.toggle('hid', id === 'overview');
+  if (id === 'orders' && allOrders.length === 0) loadOrders();
+  if (id === 'stock' && stockData.length === 0) loadStock();
+  if (id === 'expenses') loadExpenses();
+  if (id === 'batches') loadBatches();
+}
+
+function openModal(id) { document.getElementById(id).classList.add('on'); }
+function closeModal(id) { document.getElementById(id).classList.remove('on'); }
+
+document.querySelectorAll('.mb').forEach(function(bg) {
+  bg.addEventListener('click', function(e) { if (e.target === bg) bg.classList.remove('on'); });
+});
+
+function showToast(msg) {
+  var t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('on');
+  setTimeout(function() { t.classList.remove('on'); }, 2500);
+}
+
+function setDefaultDates() {
+  var t = today();
+  ['exp-date','batch-date','ao-date'].forEach(function(id) {
+    var el = document.getElementById(id);
+    if (el && !el.value) el.value = t;
+  });
+}
+
+function openFab() {
+  setDefaultDates();
+  if (currentPage === 'expenses') openModal('modal-expense');
+  else if (currentPage === 'batches') openModal('modal-batch');
+  else openModal('modal-addorder');
+}
+
+async function loadAll() {
+  var icon = document.getElementById('sync-icon');
+  icon.className = 'spin';
+  await Promise.all([loadOverview(), loadOrders(), loadStock()]);
+  icon.className = '';
+  showToast('已更新');
+}
+
+// 初始載入
 loadOverview();
 </script>
 </body>
