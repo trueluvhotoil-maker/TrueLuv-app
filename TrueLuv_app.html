@@ -639,15 +639,12 @@ async function submitEditStock(){
   finally{btn.disabled=false;btn.textContent='儲存修改'}
 }
 
-// 初始載入：顯示提示，等使用者點更新
+// 顯示提示，等使用者點更新
 document.getElementById('page-overview').innerHTML =
   '<div style="text-align:center;padding:60px 20px;color:var(--ink3)">' +
   '<div style="font-size:40px;margin-bottom:16px;opacity:.3">◎</div>' +
-  '<div style="font-size:15px;font-weight:800;color:var(--ink2);margin-bottom:8px">點右上角「更新」載入資料</div>' +
-  '<div style="font-size:13px">或等待自動載入中…</div>' +
+  '<div style="font-size:15px;font-weight:800;color:var(--ink2);margin-bottom:8px">點右上角「↻ 更新」載入資料</div>' +
   '</div>';
-// 延遲 1 秒後自動載入，給瀏覽器時間準備
-setTimeout(function(){ loadOverview(); }, 1000);
 </script>
 </body>
 </html>
