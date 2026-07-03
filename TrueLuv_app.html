@@ -295,7 +295,7 @@ function apiGet(action){
   return new Promise(function(resolve,reject){
     var cb='_cb_'+Date.now();
     var sc=document.createElement('script');
-    var timer=setTimeout(function(){delete window[cb];if(sc.parentNode)document.body.removeChild(sc);reject(new Error('連線逾時'))},10000);
+    var timer=setTimeout(function(){delete window[cb];if(sc.parentNode)document.body.removeChild(sc);reject(new Error('連線逾時，請點更新重試'))},30000);
     window[cb]=function(j){clearTimeout(timer);delete window[cb];if(sc.parentNode)document.body.removeChild(sc);if(j.status!=='ok')reject(new Error(j.message));else resolve(j.data)};
     sc.src=API+'?action='+action+'&callback='+cb;
     sc.onerror=function(){clearTimeout(timer);delete window[cb];reject(new Error('Script 載入失敗'))};
