@@ -332,18 +332,7 @@ async function loadOverview(){
   var el=document.getElementById('page-overview');
   el.innerHTML='<div class="ld"><div class="dt"></div><div class="dt"></div><div class="dt"></div></div>';
   try{
-    var results=await Promise.all([apiGet('overview'),apiGet('batches'),apiGet('orders')]);
-    var d=results[0];var batches=results[1]||[];var orders=results[2]||[];
-    // 成品庫存計算
-    var totalProduced=0;
-    batches.forEach(function(b){totalProduced+=parseInt(b['產出瓶數'])||0});
-    var totalShipped=0;
-    orders.forEach(function(o){
-      if(o['訂單狀態']==='已出貨'||o['訂單狀態']==='已送達'){
-        totalShipped+=parseInt(o['訂購數量（瓶）']||o['訂購數量'])||0;
-      }
-    });
-    var stockLeft=totalProduced-totalShipped;
+    var d=await apiGet('overview');
     var profit=d.monthProfit;
     var low=d.lowStock||[];
     var wh='';
@@ -358,7 +347,7 @@ async function loadOverview(){
         '<div class="stat" id="ov-o"><div class="stat-lbl">本月訂單</div><div class="stat-num">'+d.monthOrders+'</div><div class="stat-unit">筆</div></div>'+
         '<div class="stat" id="ov-p"><div class="stat-lbl">待處理</div><div class="stat-num'+(d.pendingCount>0?' hi':'')+'">'+d.pendingCount+'</div><div class="stat-unit">筆訂單</div></div>'+
       '</div>'+
-      '<div class="stat" style="margin-bottom:12px" id="ov-stock"><div class="stat-lbl">成品庫存</div><div class="stat-num'+(stockLeft<=5?' hi':'')+'">'+stockLeft+'</div><div class="stat-unit">瓶可出貨　（共生產 '+totalProduced+' 瓶，已出 '+totalShipped+' 瓶）</div></div>'+
+
       wh+
       '<div class="lbl">收支明細</div>'+
       '<div class="sum-card">'+
