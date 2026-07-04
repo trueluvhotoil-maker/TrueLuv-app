@@ -103,6 +103,7 @@ nav{position:fixed;bottom:0;left:0;right:0;background:var(--sf);border-top:1px s
 .btn-blk{background:var(--ink);color:#fff;margin-top:10px}
 .btn-dim{background:#2D2D2D;color:#fff;margin-top:10px}
 .btn-ghost{background:none;color:var(--ink3);margin-top:6px;font-size:14px}
+.btn-danger{background:none;color:var(--warn);margin-top:10px;font-size:13px;font-weight:700}
 .dr{display:flex;justify-content:space-between;align-items:flex-start;padding:13px 0;border-bottom:1px solid var(--bd);font-size:14px}
 .dr:last-of-type{border-bottom:none}
 .dk{color:var(--ink3);flex-shrink:0;margin-right:12px}
@@ -413,13 +414,27 @@ function openOrder(o){
       '<button class="btn btn-blk" style="flex:1;margin-top:0;background:#2D2D2D" id="edit-ord-btn">編輯</button>'+
     '</div>'+
     '<div style="margin-top:16px"><div class="lbl" style="margin-top:0">更新狀態</div><div class="sg" id="sg">'+sPills+'</div></div>'+
-    (!o['物流單號']?'<div style="margin-top:12px;display:flex;gap:8px"><input class="fi" id="track-in" placeholder="填入物流單號" style="flex:1"><button class="btn btn-blk" style="width:auto;padding:13px 16px;margin-top:0" id="track-btn">儲存</button></div>':'');
+    (!o['物流單號']?'<div style="margin-top:12px;display:flex;gap:8px"><input class="fi" id="track-in" placeholder="填入物流單號" style="flex:1"><button class="btn btn-blk" style="width:auto;padding:13px 16px;margin-top:0" id="track-btn">儲存</button></div>':'')+
+    '<button class="btn btn-danger" id="del-ord-btn">刪除此訂單</button>';
   om('modal-order');
   // 綁事件
   document.getElementById('sg').querySelectorAll('.sp').forEach(function(btn){btn.addEventListener('click',function(){updateStatus(oid,this.dataset.s,this)})});
   var pb=document.getElementById('pay-btn');if(pb&&!isPaid)pb.addEventListener('click',function(){markPaid(oid,o['收款狀態'])});
   var eb=document.getElementById('edit-ord-btn');if(eb)eb.addEventListener('click',function(){openEditOrderById(oid)});
   var tb=document.getElementById('track-btn');if(tb)tb.addEventListener('click',function(){saveTrackNo(oid)});
+  var db=document.getElementById('del-ord-btn');if(db)db.addEventListener('click',function(){deleteOrder(oid)});
+}
+async function deleteOrder(orderId){
+  if(!confirm('確定要刪除訂單 '+orderId+'？此動作無法復原，刪除後這筆資料就找不回來了。'))return;
+  var btn=document.getElementById('del-ord-btn');
+  if(btn){btn.disabled=true;btn.textContent='刪除中…'}
+  try{
+    await apiPost({action:'deleteOrder',orderId:orderId});
+    toast('訂單已刪除');cm('modal-order');allOrders=[];await loadOrders();
+  }catch(e){
+    toast('刪除失敗：'+e.message);
+    if(btn){btn.disabled=false;btn.textContent='刪除此訂單'}
+  }
 }
 async function updateStatus(orderId,status,btn){
   document.getElementById('sg').querySelectorAll('.sp').forEach(function(b){b.classList.remove('on')});
