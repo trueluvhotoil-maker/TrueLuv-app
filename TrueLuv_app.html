@@ -271,6 +271,7 @@ nav{position:fixed;bottom:0;left:0;right:0;background:var(--sf);border-top:1px s
 
 <script>
 var API = "https://script.google.com/macros/s/AKfycbycsADk9T9TGLXjAMmSWpe32fK4Tgv5U7aSKTg5TEyaAaXes2kV6hZKNEF4_f4HIyXc/exec";
+var KEY = "UyOOqaYEjzLn2LLi4owNu9JOpCNLOkRu"; // ★ 要跟 Apps Script 裡的 API_KEY 一模一樣 ★
 var allOrders = [];
 var currentFilter = '';
 var currentPage = 'overview';
@@ -298,12 +299,13 @@ function apiGet(action){
     var sc=document.createElement('script');
     var timer=setTimeout(function(){delete window[cb];if(sc.parentNode)document.body.removeChild(sc);reject(new Error('連線逾時，請點更新重試'))},30000);
     window[cb]=function(j){clearTimeout(timer);delete window[cb];if(sc.parentNode)document.body.removeChild(sc);if(j.status!=='ok')reject(new Error(j.message));else resolve(j.data)};
-    sc.src=API+'?action='+action+'&callback='+cb;
+    sc.src=API+'?action='+action+'&key='+KEY+'&callback='+cb;
     sc.onerror=function(){clearTimeout(timer);delete window[cb];reject(new Error('Script 載入失敗'))};
     document.body.appendChild(sc);
   });
 }
 async function apiPost(body){
+  body.key=KEY;
   var r=await fetch(API,{method:'POST',headers:{'Content-Type':'text/plain'},body:JSON.stringify(body)});
   var j=await r.json();
   if(j.status!=='ok')throw new Error(j.message);
@@ -374,7 +376,7 @@ function renderOrders(){
   var list=currentFilter?allOrders.filter(function(o){return o['訂單狀態']===currentFilter}):allOrders;
   if(!list.length){el.innerHTML='<div class="em"><div class="em-ic">▤</div><div class="em-t">沒有訂單</div></div>';return}
   var rows=list.map(function(o){
-    var qty=o['訂購數量（瓶）']||o['訂購數量']||'—';
+    var qty=o['訂購數量（瓶）']||'—';
     return '<div class="lr" data-idx="'+allOrders.indexOf(o)+'"><div class="lr-l"><div class="lr-t">'+(o['訂購人姓名']||'—')+' <span style="font-size:11px;color:var(--ink3);font-weight:500">'+(o['訂單編號']||'')+'</span></div><div class="lr-s">'+fmtDate(o['下單日期'])+'　'+qty+'瓶　'+(o['配送方式']||'')+'</div></div><div class="lr-r"><div class="lr-a">$'+fmt(o['訂單金額'])+'</div><span class="bd '+sb(o['訂單狀態'])+'">'+(o['訂單狀態']||'—')+'</span></div></div>';
   }).join('');
   el.innerHTML='<div class="lc">'+rows+'</div>';
@@ -392,11 +394,11 @@ function fo(status){
 // ── 訂單詳情 ──
 function dr(k,v){return'<div class="dr"><span class="dk">'+k+'</span><span class="dv">'+(v||'—')+'</span></div>'}
 function openOrder(o){
-  var oid=o['訂單編号']||o['訂單編號']||'';
+  var oid=o['訂單編號']||'';
   document.getElementById('mo-title').textContent=oid||'訂單詳情';
   var cur=o['訂單狀態']||'';
   var isPaid=o['收款狀態']==='已付款';
-  var qty=o['訂購數量（瓶）']||o['訂購數量']||'—';
+  var qty=o['訂購數量（瓶）']||'—';
   var sPills=['待確認','已確認','備貨中','已出貨','已送達','已取消'].map(function(s){
     return'<button class="sp'+(cur===s?' on':'')+'" data-s="'+s+'">'+s+'</button>';
   }).join('');
@@ -439,7 +441,7 @@ async function deleteOrder(orderId){
 async function updateStatus(orderId,status,btn){
   document.getElementById('sg').querySelectorAll('.sp').forEach(function(b){b.classList.remove('on')});
   btn.classList.add('on');
-  try{await apiPost({action:'updateOrderStatus',orderId:orderId,status:status});var o=allOrders.find(function(x){return(x['訂單編號']||x['訂單编號'])===orderId});if(o)o['訂單狀態']=status;toast('狀態已更新：'+status)}
+  try{await apiPost({action:'updateOrderStatus',orderId:orderId,status:status});var o=allOrders.find(function(x){return x['訂單編號']===orderId});if(o)o['訂單狀態']=status;toast('狀態已更新：'+status)}
   catch(e){toast('更新失敗：'+e.message)}
 }
 async function markPaid(orderId,cur){
@@ -569,16 +571,16 @@ async function submitAddOrder(){
 
 // ── 編輯訂單 ──
 function openEditOrder(o){
-  sv('eo-id',o['訂單編號']||o['訂單编號']);
+  sv('eo-id',o['訂單編號']);
   sv('eo-date',toDate(o['下單日期']));ssel('eo-source',o['來源管道']);
   sv('eo-name',o['訂購人姓名']);sv('eo-phone',o['訂購人手機']);
-  sv('eo-qty',o['訂購數量（瓶）']||o['訂購數量']);sv('eo-price',o['單價']||220);
+  sv('eo-qty',o['訂購數量（瓶）']);sv('eo-price',o['單價']||220);
   ssel('eo-delivery',o['配送方式']);sv('eo-line',o['LINE名稱']);
   sv('eo-recvname',o['收件人姓名']);sv('eo-recvphone',o['收件人手機']);
   sv('eo-address',o['收件地址']);sv('eo-convbrand',o['超商品牌']);sv('eo-convstore',o['門市店號']);
   sv('eo-note',o['備註']);om('modal-edit-order');
 }
-function openEditOrderById(orderId){var o=allOrders.find(function(x){return(x['訂單編號']||x['訂單编號'])===orderId});if(o)openEditOrder(o)}
+function openEditOrderById(orderId){var o=allOrders.find(function(x){return x['訂單編號']===orderId});if(o)openEditOrder(o)}
 async function submitEditOrder(){
   var btn=document.getElementById('eo-submit');
   btn.disabled=true;btn.textContent='儲存中…';
