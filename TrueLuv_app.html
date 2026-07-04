@@ -397,7 +397,7 @@ function openOrder(o){
   var cur=o['訂單狀態']||'';
   var isPaid=o['收款狀態']==='已付款';
   var qty=o['訂購數量（瓶）']||o['訂購數量']||'—';
-  var sPills=['待確認','已確認','備貨中','已出貨','已送達'].map(function(s){
+  var sPills=['待確認','已確認','備貨中','已出貨','已送達','已取消'].map(function(s){
     return'<button class="sp'+(cur===s?' on':'')+'" data-s="'+s+'">'+s+'</button>';
   }).join('');
   document.getElementById('mo-body').innerHTML=
