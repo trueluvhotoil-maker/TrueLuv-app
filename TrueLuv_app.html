@@ -175,8 +175,8 @@ nav{position:fixed;bottom:0;left:0;right:0;background:var(--sf);border-top:1px s
 <!-- 新增生產批次 -->
 <div class="mb" id="modal-batch"><div class="mo">
   <div class="mh"></div><div class="mt">新增生產批次</div>
-  <div class="f2"><div class="fg"><label class="fl">生產日期</label><input class="fi" type="date" id="batch-date"></div><div class="fg"><label class="fl">負責人</label><input class="fi" id="batch-operator" placeholder="媽媽"></div></div>
-  <div class="f2"><div class="fg"><label class="fl">產出瓶數</label><input class="fi" type="number" id="batch-qty" placeholder="22"></div><div class="fg"><label class="fl">包材成本（元）</label><input class="fi" type="number" id="batch-packaging" placeholder="0"></div></div>
+  <div class="f2"><div class="fg"><label class="fl">生產日期</label><input class="fi" type="date" id="batch-date"></div><div class="fg"><label class="fl">產出瓶數</label><input class="fi" type="number" id="batch-qty" placeholder="22"></div></div>
+  <div style="font-size:11px;color:var(--ink3);margin:-4px 0 12px">批次編號將依生產日期自動產生（TL-年月日-B序號），效期為生產日起 3 個月</div>
   <div class="rbox"><div class="rlbl">配方用量</div><div class="f2">
     <div class="fg" style="margin-bottom:8px"><label class="fl" style="margin-bottom:4px">葵花油 ml</label><input class="fi" type="number" id="b-oil" value="3000"></div>
     <div class="fg" style="margin-bottom:8px"><label class="fl" style="margin-bottom:4px">魔鬼椒粉 g</label><input class="fi" type="number" id="b-devil" value="20"></div>
@@ -239,8 +239,7 @@ nav{position:fixed;bottom:0;left:0;right:0;background:var(--sf);border-top:1px s
 <div class="mb" id="modal-edit-batch"><div class="mo">
   <div class="mh"></div><div class="mt">編輯批次</div>
   <input type="hidden" id="eb-rowindex">
-  <div class="f2"><div class="fg"><label class="fl">生產日期</label><input class="fi" type="date" id="eb-date"></div><div class="fg"><label class="fl">負責人</label><input class="fi" id="eb-operator"></div></div>
-  <div class="f2"><div class="fg"><label class="fl">產出瓶數</label><input class="fi" type="number" id="eb-qty"></div><div class="fg"><label class="fl">包材成本（元）</label><input class="fi" type="number" id="eb-packaging"></div></div>
+  <div class="f2"><div class="fg"><label class="fl">生產日期</label><input class="fi" type="date" id="eb-date"></div><div class="fg"><label class="fl">產出瓶數</label><input class="fi" type="number" id="eb-qty"></div></div>
   <div class="rbox"><div class="rlbl">配方用量</div><div class="f2">
     <div class="fg" style="margin-bottom:8px"><label class="fl" style="margin-bottom:4px">葵花油 ml</label><input class="fi" type="number" id="eb-oil"></div>
     <div class="fg" style="margin-bottom:8px"><label class="fl" style="margin-bottom:4px">魔鬼椒粉 g</label><input class="fi" type="number" id="eb-devil"></div>
@@ -275,11 +274,18 @@ var KEY = "UyOOqaYEjzLn2LLi4owNu9JOpCNLOkRu"; // ★ 要跟 Apps Script 裡的 A
 var allOrders = [];
 var currentFilter = '';
 var currentPage = 'overview';
+var SHELF_LIFE_MONTHS = 3; // 保存期限（月），效期依此從生產日期推算
 var stockData = [];
 var finishedGoods = 0, fgProduced = 0, fgSold = 0;
 var expenseDataCache = [];
 
 // ── 工具 ──
+function expiryOf(dateStr){
+  if(!dateStr)return'';
+  var d=new Date(dateStr);if(isNaN(d))return'';
+  d.setMonth(d.getMonth()+SHELF_LIFE_MONTHS);
+  return d.getFullYear()+'/'+(d.getMonth()+1)+'/'+d.getDate();
+}
 function esc(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')}
 function fmt(n){var x=parseFloat(n);return isNaN(x)?'—':x.toLocaleString('zh-TW')}
 function fmtDate(d){if(!d)return'—';var dt=new Date(d);if(isNaN(dt.getTime()))return String(d).substring(0,10);return(dt.getMonth()+1)+'/'+dt.getDate()}
@@ -563,7 +569,8 @@ async function loadBatches(){
     if(!data.length){el.innerHTML='<div class="em"><div class="em-ic">⊙</div><div class="em-t">還沒有生產記錄</div><div class="em-d">點右下角 ＋ 新增批次</div></div>';return}
     var rows=data.map(function(r,idx){
       var rem=parseFloat(r['_remaining']);rem=isNaN(rem)?0:rem;var shp=parseFloat(r['_shipped'])||0;
-      return'<div class="lr" data-idx="'+idx+'"><div class="lr-l"><div class="lr-t">'+esc(r['批次編號']||'—')+' <span style="font-size:11px;color:var(--ink3);font-weight:500">'+esc(r['負責人']||'')+'</span></div><div class="lr-s">'+fmtDate(r['生產日期'])+'　'+esc(r['備註']||'')+'</div></div><div class="lr-r"><div class="lr-a"'+(rem<=0?' style="color:var(--warn)"':'')+'>剩 '+rem+'／'+esc(r['產出瓶數']||'—')+' 瓶</div><div style="font-size:11px;color:var(--ink3)">已出 '+shp+'　每瓶 $'+(r['每瓶成本']?Math.round(parseFloat(r['每瓶成本'])):'—')+'</div></div></div>';
+      var exp=expiryOf(r['生產日期']);
+      return'<div class="lr" data-idx="'+idx+'"><div class="lr-l"><div class="lr-t">'+esc(r['批次編號']||'—')+'</div><div class="lr-s">'+fmtDate(r['生產日期'])+' 製'+(exp?'　效期至 '+exp:'')+(r['備註']?'　'+esc(r['備註']):'')+'</div></div><div class="lr-r"><div class="lr-a"'+(rem<=0?' style="color:var(--warn)"':'')+'>剩 '+rem+'／'+esc(r['產出瓶數']||'—')+' 瓶</div><div style="font-size:11px;color:var(--ink3)">已出 '+shp+'　每瓶 $'+(r['每瓶成本']?Math.round(parseFloat(r['每瓶成本'])):'—')+'</div></div></div>';
     }).join('');
     el.innerHTML='<div class="lc">'+rows+'</div>';
     var batchData=data;
@@ -602,7 +609,7 @@ async function submitBatch(){
   if(!gv('batch-qty')){toast('請填入產出瓶數');return}
   btn.disabled=true;btn.textContent='儲存中…';
   try{
-    await apiPost({action:'addBatch',data:{date:gv('batch-date'),operator:gv('batch-operator'),qty:gv('batch-qty'),packagingCost:gv('batch-packaging'),note:gv('batch-note')}});
+    await apiPost({action:'addBatch',data:{date:gv('batch-date'),qty:gv('batch-qty'),oil:gv('b-oil'),devil:gv('b-devil'),facing:gv('b-facing'),heart:gv('b-heart'),ejing:gv('b-ejing'),peppercorn:gv('b-peppercorn'),hungary:gv('b-hungary'),note:gv('batch-note')}});
     toast('生產批次已記錄');cm('modal-batch');loadBatches();
   }catch(e){toast('失敗：'+e.message)}
   finally{btn.disabled=false;btn.textContent='儲存批次'}
@@ -644,7 +651,7 @@ async function submitEditOrder(){
 
 // ── 編輯支出 ──
 function openEditExpense(r,idx){
-  sv('ee-rowindex',idx);sv('ee-date',toDate(r['日期']));ssel('ee-category',r['類別']);
+  sv('ee-rowindex',r['_row']);sv('ee-date',toDate(r['日期']));ssel('ee-category',r['類別']);
   sv('ee-amount',r['金額（元）']);sv('ee-desc',r['項目說明']);
   ssel('ee-payment',r['付款方式']);sv('ee-supplier',r['供應商／對象']);sv('ee-note',r['備註']);
   om('modal-edit-expense');
@@ -652,7 +659,7 @@ function openEditExpense(r,idx){
 async function submitEditExpense(){
   var btn=document.getElementById('ee-submit');btn.disabled=true;btn.textContent='儲存中…';
   try{
-    await apiPost({action:'editExpense',rowIndex:gv('ee-rowindex'),data:{date:gv('ee-date'),category:gv('ee-category'),description:gv('ee-desc'),amount:gv('ee-amount'),paymentMethod:gv('ee-payment'),supplier:gv('ee-supplier'),note:gv('ee-note')}});
+    await apiPost({action:'editExpense',row:gv('ee-rowindex'),data:{date:gv('ee-date'),category:gv('ee-category'),description:gv('ee-desc'),amount:gv('ee-amount'),paymentMethod:gv('ee-payment'),supplier:gv('ee-supplier'),note:gv('ee-note')}});
     toast('支出已更新');cm('modal-edit-expense');loadExpenses();
   }catch(e){toast('失敗：'+e.message)}
   finally{btn.disabled=false;btn.textContent='儲存修改'}
@@ -660,8 +667,8 @@ async function submitEditExpense(){
 
 // ── 編輯批次 ──
 function openEditBatch(r,idx){
-  sv('eb-rowindex',idx);sv('eb-date',toDate(r['生產日期']));sv('eb-operator',r['負責人']);
-  sv('eb-qty',r['產出瓶數']);sv('eb-packaging',r['包材成本']);
+  sv('eb-rowindex',r['_row']);sv('eb-date',toDate(r['生產日期']));
+  sv('eb-qty',r['產出瓶數']);
   sv('eb-oil',r['葵花油(ml)']||r['葵花油']||3000);sv('eb-devil',r['魔鬼椒粉(g)']||r['魔鬼椒粉']||20);
   sv('eb-facing',r['朝天椒粉(g)']||r['朝天椒粉']||130);sv('eb-heart',r['雞心椒粉(g)']||r['雞心椒粉']||190);
   sv('eb-ejing',r['二荊條粉(g)']||r['二荊條粉']||100);sv('eb-peppercorn',r['大紅袍花椒(g)']||r['大紅袍花椒']||90);
@@ -671,7 +678,7 @@ function openEditBatch(r,idx){
 async function submitEditBatch(){
   var btn=document.getElementById('eb-submit');btn.disabled=true;btn.textContent='儲存中…';
   try{
-    await apiPost({action:'editBatch',rowIndex:gv('eb-rowindex'),data:{date:gv('eb-date'),operator:gv('eb-operator'),qty:gv('eb-qty'),packagingCost:gv('eb-packaging'),oil:gv('eb-oil'),devil:gv('eb-devil'),facing:gv('eb-facing'),heart:gv('eb-heart'),ejing:gv('eb-ejing'),peppercorn:gv('eb-peppercorn'),hungary:gv('eb-hungary'),note:gv('eb-note')}});
+    await apiPost({action:'editBatch',row:gv('eb-rowindex'),data:{date:gv('eb-date'),qty:gv('eb-qty'),oil:gv('eb-oil'),devil:gv('eb-devil'),facing:gv('eb-facing'),heart:gv('eb-heart'),ejing:gv('eb-ejing'),peppercorn:gv('eb-peppercorn'),hungary:gv('eb-hungary'),note:gv('eb-note')}});
     toast('批次已更新');cm('modal-edit-batch');loadBatches();
   }catch(e){toast('失敗：'+e.message)}
   finally{btn.disabled=false;btn.textContent='儲存修改'}
