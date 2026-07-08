@@ -269,46 +269,77 @@ nav{position:fixed;bottom:0;left:0;right:0;background:var(--sf);border-top:1px s
 <div class="toast" id="toast"></div>
 
 <script>
+// ══════════════════════════════════════════════════════════════
+// 初辣 App 前端 v2
+// 架構改變：
+//  1. 一次請求（action=all）抓回全部資料，取代原本 3~5 個請求
+//  2. 總覽數字由前端從眼前的資料即時計算 → 永遠與各分頁同步
+//  3. localStorage 快取：打開 app 立刻顯示上次資料，背景自動更新
+//  4. 每個寫入動作先更新畫面，再背景同步校正，不用手動點更新
+// Bug 修正：
+//  5. 日期時差（toDate/today 改用本地時間，編輯日期不再少一天）
+//  6. JSONP callback 名稱加亂數，不再互相碰撞造成「連線逾時」
+//  7. 0 元公關品編輯時不再被帶回 220
+//  8. 效期計算月底溢位修正
+// ══════════════════════════════════════════════════════════════
 var API = "https://script.google.com/macros/s/AKfycbycsADk9T9TGLXjAMmSWpe32fK4Tgv5U7aSKTg5TEyaAaXes2kV6hZKNEF4_f4HIyXc/exec";
 var KEY = "UyOOqaYEjzLn2LLi4owNu9JOpCNLOkRu"; // ★ 要跟 Apps Script 裡的 API_KEY 一模一樣 ★
-var allOrders = [];
+var SHELF_LIFE_MONTHS = 3; // 保存期限（月），效期依此從生產日期推算
+var CACHE_KEY = 'chula_cache_v2';
+
+var allOrders = [], stockData = [], expenseData = [], batchData = [];
+var lastUpdated = null;
 var currentFilter = '';
 var currentPage = 'overview';
-var SHELF_LIFE_MONTHS = 3; // 保存期限（月），效期依此從生產日期推算
-var stockData = [];
-var finishedGoods = 0, fgProduced = 0, fgSold = 0;
-var expenseDataCache = [];
+var refreshing = false;
+var loadedOnce = false;   // 是否已成功從伺服器抓過至少一次
+var curExp = null, curBat = null; // 目前正在編輯的支出/批次（本地物件參照）
 
 // ── 工具 ──
-function expiryOf(dateStr){
-  if(!dateStr)return'';
-  var d=new Date(dateStr);if(isNaN(d))return'';
-  d.setMonth(d.getMonth()+SHELF_LIFE_MONTHS);
-  return d.getFullYear()+'/'+(d.getMonth()+1)+'/'+d.getDate();
-}
+function pad2(n){return String(n).padStart(2,'0')}
 function esc(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')}
 function fmt(n){var x=parseFloat(n);return isNaN(x)?'—':x.toLocaleString('zh-TW')}
 function fmtDate(d){if(!d)return'—';var dt=new Date(d);if(isNaN(dt.getTime()))return String(d).substring(0,10);return(dt.getMonth()+1)+'/'+dt.getDate()}
-function today(){return new Date().toISOString().split('T')[0]}
+// ★ 用「本地時間」組 yyyy-mm-dd，不用 toISOString（那是 UTC，會少一天）
+function toDate(v){
+  if(!v)return'';
+  var d=new Date(v);
+  if(isNaN(d.getTime()))return String(v).substring(0,10);
+  return d.getFullYear()+'-'+pad2(d.getMonth()+1)+'-'+pad2(d.getDate());
+}
+function today(){return toDate(new Date())}
+// 效期＝生產日期＋3個月；月底溢位時取當月最後一天（例 11/30 → 2/28）
+function expiryOf(dateStr){
+  if(!dateStr)return'';
+  var d=new Date(dateStr);if(isNaN(d.getTime()))return'';
+  var y=d.getFullYear(),m=d.getMonth()+SHELF_LIFE_MONTHS;
+  var lastDay=new Date(y,m+1,0).getDate();
+  var t=new Date(y,m,Math.min(d.getDate(),lastDay));
+  return t.getFullYear()+'/'+(t.getMonth()+1)+'/'+t.getDate();
+}
 function sb(s){return({'待確認':'b-pending','已確認':'b-confirmed','備貨中':'b-packing','已出貨':'b-shipped','已送達':'b-done','已取消':'b-cancelled'})[s]||'b-pending'}
-function toast(msg){var t=document.getElementById('toast');t.textContent=msg;t.classList.add('on');setTimeout(function(){t.classList.remove('on')},2500)}
+function toast(msg){var t=document.getElementById('toast');t.textContent=msg;t.classList.add('on');clearTimeout(t._tm);t._tm=setTimeout(function(){t.classList.remove('on')},2500)}
 function om(id){document.getElementById(id).classList.add('on')}
 function cm(id){document.getElementById(id).classList.remove('on')}
 function gv(id){return document.getElementById(id).value}
-function sv(id,v){var el=document.getElementById(id);if(el)el.value=v||''}
+function sv(id,v){var el=document.getElementById(id);if(el)el.value=(v===0?'0':(v||''))}
 function ssel(id,v){var el=document.getElementById(id);if(!el||!v)return;for(var i=0;i<el.options.length;i++){if(el.options[i].value===v||el.options[i].text===v){el.selectedIndex=i;return}}}
-function toDate(v){if(!v)return'';var d=new Date(v);if(isNaN(d.getTime()))return String(v).substring(0,10);return d.toISOString().split('T')[0]}
+// 取第一個「有值」的欄位（0 也算有值，避免 0 元公關品被 ||220 蓋掉）
+function kv(o,keys,def){for(var i=0;i<keys.length;i++){var v=o[keys[i]];if(v!==''&&v!==undefined&&v!==null)return v}return def}
 function setDates(){var t=today();['exp-date','batch-date','ao-date'].forEach(function(id){var el=document.getElementById(id);if(el&&!el.value)el.value=t})}
+function loaderHtml(){return'<div class="ld"><div class="dt"></div><div class="dt"></div><div class="dt"></div></div>'}
 
-// ── JSONP ──
+// ── JSONP（callback 名稱加亂數，避免同時多個請求互相碰撞）──
 function apiGet(action){
   return new Promise(function(resolve,reject){
-    var cb='_cb_'+Date.now();
+    var cb='_cb_'+Date.now()+'_'+Math.floor(Math.random()*1e6);
     var sc=document.createElement('script');
-    var timer=setTimeout(function(){delete window[cb];if(sc.parentNode)document.body.removeChild(sc);reject(new Error('連線逾時，請點更新重試'))},30000);
-    window[cb]=function(j){clearTimeout(timer);delete window[cb];if(sc.parentNode)document.body.removeChild(sc);if(j.status!=='ok')reject(new Error(j.message));else resolve(j.data)};
+    var done=false;
+    function cleanup(){done=true;delete window[cb];if(sc.parentNode)sc.parentNode.removeChild(sc)}
+    var timer=setTimeout(function(){if(done)return;cleanup();reject(new Error('連線逾時，請點更新重試'))},30000);
+    window[cb]=function(j){if(done)return;clearTimeout(timer);cleanup();if(j.status!=='ok')reject(new Error(j.message));else resolve(j.data)};
+    sc.onerror=function(){if(done)return;clearTimeout(timer);cleanup();reject(new Error('連線失敗，請確認網路'))};
     sc.src=API+'?action='+action+'&key='+KEY+'&callback='+cb;
-    sc.onerror=function(){clearTimeout(timer);delete window[cb];reject(new Error('Script 載入失敗'))};
     document.body.appendChild(sc);
   });
 }
@@ -320,7 +351,153 @@ async function apiPost(body){
   return j.data;
 }
 
-// ── 頁面切換 ──
+// ── 快取：打開 app 先顯示上次的資料 ──
+function saveCache(){
+  try{localStorage.setItem(CACHE_KEY,JSON.stringify({t:lastUpdated?lastUpdated.getTime():Date.now(),o:allOrders,s:stockData,e:expenseData,b:batchData}))}catch(x){}
+}
+function loadCacheAndRender(){
+  try{
+    var c=JSON.parse(localStorage.getItem(CACHE_KEY)||'null');
+    if(!c||!c.o)return false;
+    allOrders=c.o||[];stockData=c.s||[];expenseData=c.e||[];batchData=c.b||[];
+    lastUpdated=new Date(c.t);
+    renderAll();
+    return true;
+  }catch(x){return false}
+}
+
+// ── 載入全部（唯一的讀取請求）──
+async function loadAll(isFirst){
+  if(refreshing)return;
+  refreshing=true;
+  var icon=document.getElementById('si');icon.className='spin';
+  try{
+    var d=await apiGet('all');
+    allOrders=(d.orders||[]).slice().reverse();     // 最新在前
+    expenseData=(d.expenses||[]).slice().reverse();
+    batchData=(d.batches||[]).slice().reverse();
+    stockData=d.stock||[];
+    lastUpdated=new Date();
+    loadedOnce=true;
+    saveCache();
+    renderAll();
+    if(!isFirst)toast('已更新');
+  }catch(e){
+    if(isFirst&&!lastUpdated){showLoadError(e.message)}
+    else toast('更新失敗：'+e.message);
+  }
+  icon.className='';
+  refreshing=false;
+}
+// 背景靜默更新：寫入成功後呼叫，把本地資料跟 Sheet 校正
+function refresh(){loadAll(false)}
+function showLoadError(msg){
+  var h='<div class="em"><div class="em-ic">⚠</div><div class="em-t">連線失敗</div><div class="em-d">'+esc(msg)+'<br>請點右上角「↻ 更新」重試</div></div>';
+  document.getElementById('page-overview').innerHTML=h;
+  ['orders-content','stock-content','expenses-content','batches-content'].forEach(function(id){document.getElementById(id).innerHTML=h});
+}
+
+// ── 全部重繪（資料變動時呼叫，五個頁面永遠同步）──
+function renderAll(){
+  renderOverview();
+  renderOrders();
+  renderStock();
+  renderExpenses();
+  renderBatches();
+}
+
+// ══════════════════════════════════════════════════════════════
+// 總覽：由前端從眼前的資料即時計算（不再依賴後端另外算的一包數字）
+// ══════════════════════════════════════════════════════════════
+function computeOverview(){
+  var now=new Date(),m=now.getMonth(),y=now.getFullYear();
+  var o={monthRevenue:0,monthExpense:0,monthOrders:0,pendingCount:0,shippedCount:0,
+         totalRevenue:0,totalExpense:0,fgProduced:0,fgSold:0,lowStock:[]};
+  allOrders.forEach(function(r){
+    var st=r['訂單狀態']||'';
+    if(st==='已取消')return; // ★ 已取消不計入營收、訂單數、庫存扣減
+    var amt=parseFloat(r['訂單金額'])||0;
+    var qty=parseFloat(r['訂購數量（瓶）'])||0;
+    o.totalRevenue+=amt;
+    o.fgSold+=qty;
+    var d=new Date(r['下單日期']);
+    if(!isNaN(d.getTime())&&d.getMonth()===m&&d.getFullYear()===y){o.monthRevenue+=amt;o.monthOrders++}
+    if(st==='待確認'||st==='已確認'||st==='備貨中')o.pendingCount++;
+    if(st==='已出貨')o.shippedCount++;
+  });
+  expenseData.forEach(function(r){
+    var amt=parseFloat(r['金額（元）'])||0;
+    o.totalExpense+=amt;
+    var d=new Date(r['日期']);
+    if(!isNaN(d.getTime())&&d.getMonth()===m&&d.getFullYear()===y)o.monthExpense+=amt;
+  });
+  batchData.forEach(function(r){o.fgProduced+=parseFloat(r['產出瓶數'])||0});
+  stockData.forEach(function(s){
+    var name=s['品項名稱'];if(!name)return;
+    var qty=parseFloat(s['現有數量'])||0,safe=parseFloat(s['安全庫存量'])||0;
+    if(qty===0||(safe>0&&qty<=safe))o.lowStock.push({name:name,qty:qty,safe:safe});
+  });
+  o.finishedGoods=o.fgProduced-o.fgSold;
+  o.monthProfit=o.monthRevenue-o.monthExpense;
+  o.totalProfit=o.totalRevenue-o.totalExpense;
+  return o;
+}
+// 各批次的已出/剩餘：從訂單的「出貨批次」欄計算（不含已取消），跟訂單資料永遠一致
+function batchStats(){
+  var shipped={};
+  allOrders.forEach(function(r){
+    if((r['訂單狀態']||'')==='已取消')return;
+    var b=String(r['出貨批次']||'').trim();if(!b)return;
+    shipped[b]=(shipped[b]||0)+(parseFloat(r['訂購數量（瓶）'])||0);
+  });
+  return batchData.map(function(r){
+    var id=String(r['批次編號']||'').trim();
+    var produced=parseFloat(r['產出瓶數'])||0;
+    var shp=shipped[id]||0;
+    return{row:r,shipped:shp,remaining:produced-shp};
+  });
+}
+
+function renderOverview(){
+  var el=document.getElementById('page-overview');
+  if(!lastUpdated){el.innerHTML=loaderHtml();return}
+  var d=computeOverview();
+  var profit=d.monthProfit;
+  var low=d.lowStock||[];
+  var wh='';
+  if(low.length>0){
+    wh='<div class="lbl">庫存警示</div>';
+    low.forEach(function(s){wh+='<div class="warn-item"><div class="warn-pip"></div><div class="warn-txt">'+esc(s.name)+'　'+(s.qty==0?'已缺貨':'現有 '+esc(s.qty)+'，低於安全庫存')+'</div></div>'});
+  }
+  var syncNote=lastUpdated.toLocaleString('zh-TW',{month:'numeric',day:'numeric',hour:'2-digit',minute:'2-digit'});
+  el.innerHTML=
+    '<div class="lbl">本月財務</div>'+
+    '<div class="hero"><div class="hero-lbl">結餘</div><div class="hero-num">$'+fmt(profit)+'</div><div class="hero-sub">收入 <span>$'+fmt(d.monthRevenue)+'</span>　支出 <span>$'+fmt(d.monthExpense)+'</span></div></div>'+
+    '<div class="stat-row">'+
+      '<div class="stat" id="ov-o"><div class="stat-lbl">本月訂單</div><div class="stat-num">'+d.monthOrders+'</div><div class="stat-unit">筆</div></div>'+
+      '<div class="stat" id="ov-p"><div class="stat-lbl">待處理</div><div class="stat-num'+(d.pendingCount>0?' hi':'')+'">'+d.pendingCount+'</div><div class="stat-unit">筆訂單</div></div>'+
+      '<div class="stat" id="ov-fg" style="grid-column:1/-1"><div class="stat-lbl">成品庫存</div><div class="stat-num'+(d.finishedGoods<=0?' hi':'')+'">'+fmt(d.finishedGoods)+'</div><div class="stat-unit">罐　＝已生產 '+fmt(d.fgProduced)+' − 已訂購 '+fmt(d.fgSold)+'</div></div>'+
+    '</div>'+
+    wh+
+    '<div class="lbl">收支明細（本月）</div>'+
+    '<div class="sum-card">'+
+      '<div class="sum-row"><span class="sum-key">本月收入</span><span class="sum-val pos">$'+fmt(d.monthRevenue)+'</span></div>'+
+      '<div class="sum-row"><span class="sum-key">本月支出</span><span class="sum-val neg">$'+fmt(d.monthExpense)+'</span></div>'+
+      '<div class="sum-row"><span class="sum-key" style="font-weight:700">本月結餘</span><span class="sum-val '+(profit>=0?'pos':'neg')+'" style="font-size:17px">$'+fmt(profit)+'</span></div>'+
+    '</div>'+
+    '<div class="lbl">累計（開始至今）</div>'+
+    '<div class="sum-card">'+
+      '<div class="sum-row"><span class="sum-key">總收入</span><span class="sum-val pos">$'+fmt(d.totalRevenue)+'</span></div>'+
+      '<div class="sum-row"><span class="sum-key">總支出</span><span class="sum-val neg">$'+fmt(d.totalExpense)+'</span></div>'+
+      '<div class="sum-row"><span class="sum-key" style="font-weight:700">總結餘</span><span class="sum-val '+((d.totalProfit||0)>=0?'pos':'neg')+'" style="font-size:17px">$'+fmt(d.totalProfit)+'</span></div>'+
+    '</div>'+
+    '<div style="font-size:10px;color:var(--ink3);text-align:right;margin-top:8px">'+syncNote+' 更新</div>';
+  var ob=document.getElementById('ov-o');if(ob)ob.addEventListener('click',function(){gp('orders',document.querySelectorAll('.ni')[1]);fo('')});
+  var pb=document.getElementById('ov-p');if(pb)pb.addEventListener('click',function(){gp('orders',document.querySelectorAll('.ni')[1]);fo('待確認')});
+  var fg=document.getElementById('ov-fg');if(fg)fg.addEventListener('click',function(){gp('stock',document.querySelectorAll('.ni')[2])});
+}
+
+// ── 頁面切換（資料常駐本地，切換不需要重新抓）──
 function gp(id,el){
   document.querySelectorAll('.pg').forEach(function(p){p.classList.remove('on')});
   document.querySelectorAll('.ni').forEach(function(n){n.classList.remove('on')});
@@ -328,67 +505,18 @@ function gp(id,el){
   if(el)el.classList.add('on');
   currentPage=id;
   document.getElementById('fab').classList.toggle('hid',id==='overview');
-  if(id==='orders'&&allOrders.length===0)loadOrders();
-  if(id==='stock'&&stockData.length===0)loadStock();
-  if(id==='expenses')loadExpenses();
-  if(id==='batches')loadBatches();
 }
 
 function openFab(){setDates();if(currentPage==='expenses')om('modal-expense');else if(currentPage==='batches')om('modal-batch');else om('modal-addorder')}
 
 document.querySelectorAll('.mb').forEach(function(bg){bg.addEventListener('click',function(e){if(e.target===bg)bg.classList.remove('on')})});
 
-// ── 總覽 ──
-async function loadOverview(){
-  var el=document.getElementById('page-overview');
-  el.innerHTML='<div class="ld"><div class="dt"></div><div class="dt"></div><div class="dt"></div></div>';
-  try{
-    var d=await apiGet('overview');
-    var profit=d.monthProfit;
-    var low=d.lowStock||[];
-    var wh='';
-    if(low.length>0){
-      wh='<div class="lbl">庫存警示</div>';
-      low.forEach(function(s){wh+='<div class="warn-item"><div class="warn-pip"></div><div class="warn-txt">'+esc(s.name)+'　'+(s.qty==0?'已缺貨':'現有 '+esc(s.qty)+'，低於安全庫存')+'</div></div>'});
-    }
-    el.innerHTML=
-      '<div class="lbl">本月財務</div>'+
-      '<div class="hero"><div class="hero-lbl">結餘</div><div class="hero-num">$'+fmt(profit)+'</div><div class="hero-sub">收入 <span>$'+fmt(d.monthRevenue)+'</span>　支出 <span>$'+fmt(d.monthExpense)+'</span></div></div>'+
-      '<div class="stat-row">'+
-        '<div class="stat" id="ov-o"><div class="stat-lbl">本月訂單</div><div class="stat-num">'+d.monthOrders+'</div><div class="stat-unit">筆</div></div>'+
-        '<div class="stat" id="ov-p"><div class="stat-lbl">待處理</div><div class="stat-num'+(d.pendingCount>0?' hi':'')+'">'+d.pendingCount+'</div><div class="stat-unit">筆訂單</div></div>'+
-        '<div class="stat" id="ov-fg" style="grid-column:1/-1"><div class="stat-lbl">成品庫存</div><div class="stat-num'+(d.finishedGoods<=0?' hi':'')+'">'+fmt(d.finishedGoods)+'</div><div class="stat-unit">罐　＝已生產 '+fmt(d.fgProduced)+' − 已訂購 '+fmt(d.fgSold)+'</div></div>'+
-      '</div>'+
-
-      wh+
-      '<div class="lbl">收支明細（本月）</div>'+
-      '<div class="sum-card">'+
-        '<div class="sum-row"><span class="sum-key">本月收入</span><span class="sum-val pos">$'+fmt(d.monthRevenue)+'</span></div>'+
-        '<div class="sum-row"><span class="sum-key">本月支出</span><span class="sum-val neg">$'+fmt(d.monthExpense)+'</span></div>'+
-        '<div class="sum-row"><span class="sum-key" style="font-weight:700">本月結餘</span><span class="sum-val '+(profit>=0?'pos':'neg')+'" style="font-size:17px">$'+fmt(profit)+'</span></div>'+
-      '</div>'+
-      '<div class="lbl">累計（開始至今）</div>'+
-      '<div class="sum-card">'+
-        '<div class="sum-row"><span class="sum-key">總收入</span><span class="sum-val pos">$'+fmt(d.totalRevenue)+'</span></div>'+
-        '<div class="sum-row"><span class="sum-key">總支出</span><span class="sum-val neg">$'+fmt(d.totalExpense)+'</span></div>'+
-        '<div class="sum-row"><span class="sum-key" style="font-weight:700">總結餘</span><span class="sum-val '+((d.totalProfit||0)>=0?'pos':'neg')+'" style="font-size:17px">$'+fmt(d.totalProfit)+'</span></div>'+
-      '</div>'+
-      '<div style="font-size:10px;color:var(--ink3);text-align:right;margin-top:8px">'+new Date().toLocaleString('zh-TW',{month:'numeric',day:'numeric',hour:'2-digit',minute:'2-digit'})+' 更新</div>';
-    var ob=document.getElementById('ov-o');if(ob)ob.addEventListener('click',function(){gp('orders',document.querySelectorAll('.ni')[1]);fo('')});
-    var pb=document.getElementById('ov-p');if(pb)pb.addEventListener('click',function(){gp('orders',document.querySelectorAll('.ni')[1]);fo('待確認')});
-    var fg=document.getElementById('ov-fg');if(fg)fg.addEventListener('click',function(){gp('stock',document.querySelectorAll('.ni')[2])});
-  }catch(e){el.innerHTML='<div class="em"><div class="em-ic">⚠</div><div class="em-t">連線失敗</div><div class="em-d">'+e.message+'</div></div>'}
-}
-
-// ── 訂單 ──
-async function loadOrders(){
-  var el=document.getElementById('orders-content');
-  el.innerHTML='<div class="ld"><div class="dt"></div><div class="dt"></div><div class="dt"></div></div>';
-  try{allOrders=await apiGet('orders');renderOrders()}
-  catch(e){el.innerHTML='<div class="em"><div class="em-ic">⚠</div><div class="em-t">載入失敗</div><div class="em-d">'+e.message+'</div></div>'}
-}
+// ══════════════════════════════════════════════════════════════
+// 訂單
+// ══════════════════════════════════════════════════════════════
 function renderOrders(){
   var el=document.getElementById('orders-content');
+  if(!lastUpdated){el.innerHTML=loaderHtml();return}
   var list=currentFilter?allOrders.filter(function(o){return o['訂單狀態']===currentFilter}):allOrders;
   if(!list.length){el.innerHTML='<div class="em"><div class="em-ic">▤</div><div class="em-t">沒有訂單</div></div>';return}
   var rows=list.map(function(o){
@@ -410,6 +538,7 @@ function fo(status){
 // ── 訂單詳情 ──
 function dr(k,v){return'<div class="dr"><span class="dk">'+k+'</span><span class="dv">'+(v||'—')+'</span></div>'}
 function openOrder(o){
+  if(!o)return;
   var oid=o['訂單編號']||'';
   document.getElementById('mo-title').textContent=oid||'訂單詳情';
   var cur=o['訂單狀態']||'';
@@ -434,51 +563,53 @@ function openOrder(o){
     '</div>'+
     '<div style="margin-top:16px"><div class="lbl" style="margin-top:0">更新狀態</div><div class="sg" id="sg">'+sPills+'</div></div>'+
     (!o['物流單號']?'<div style="margin-top:12px;display:flex;gap:8px"><input class="fi" id="track-in" placeholder="填入物流單號" style="flex:1"><button class="btn btn-blk" style="width:auto;padding:13px 16px;margin-top:0" id="track-btn">儲存</button></div>':'')+
-    (!o['出貨批次']?'<div style="margin-top:12px;display:flex;gap:8px"><select class="fi fi-s" id="batch-sel" style="flex:1"><option value="">載入批次中…</option></select><button class="btn btn-blk" style="width:auto;padding:13px 16px;margin-top:0" id="batch-btn">儲存</button></div>':'')+
+    (!o['出貨批次']?'<div style="margin-top:12px;display:flex;gap:8px"><select class="fi fi-s" id="batch-sel" style="flex:1"><option value="">選擇出貨批次…</option></select><button class="btn btn-blk" style="width:auto;padding:13px 16px;margin-top:0" id="batch-btn">儲存</button></div>':'')+
     '<button class="btn btn-danger" id="del-ord-btn">刪除此訂單</button>';
   om('modal-order');
   // 綁事件
   document.getElementById('sg').querySelectorAll('.sp').forEach(function(btn){btn.addEventListener('click',function(){updateStatus(oid,this.dataset.s,this)})});
-  var pb=document.getElementById('pay-btn');if(pb&&!isPaid)pb.addEventListener('click',function(){markPaid(oid,o['收款狀態'])});
-  var eb=document.getElementById('edit-ord-btn');if(eb)eb.addEventListener('click',function(){openEditOrderById(oid)});
+  var pb=document.getElementById('pay-btn');if(pb&&!isPaid)pb.addEventListener('click',function(){markPaid(oid)});
+  var ebtn=document.getElementById('edit-ord-btn');if(ebtn)ebtn.addEventListener('click',function(){openEditOrderById(oid)});
   var tb=document.getElementById('track-btn');if(tb)tb.addEventListener('click',function(){saveTrackNo(oid)});
   var db=document.getElementById('del-ord-btn');if(db)db.addEventListener('click',function(){deleteOrder(oid)});
   var bb=document.getElementById('batch-btn');
   if(bb){
     bb.addEventListener('click',function(){saveOrderBatch(oid,o)});
-    fillBatchOptions(); // 非同步載入批次清單填入下拉選單
+    fillBatchOptions(); // 從本地批次資料填入下拉選單，不需要再打 API
   }
 }
-var batchCache=null;
-async function fillBatchOptions(){
+function fillBatchOptions(){
   var sel=document.getElementById('batch-sel');if(!sel)return;
-  try{
-    if(!batchCache)batchCache=await apiGet('batches');
-    var opts='<option value="">選擇出貨批次…</option>';
-    batchCache.forEach(function(b){
-      var id=b['批次編號']||'';if(!id)return;
-      var rem=parseFloat(b['_remaining']);rem=isNaN(rem)?0:rem;
-      opts+='<option value="'+esc(id)+'"'+(rem<=0?' disabled':'')+'>'+esc(id)+'（剩 '+rem+' 罐）</option>';
-    });
-    sel.innerHTML=opts;
-  }catch(e){sel.innerHTML='<option value="">批次載入失敗</option>'}
+  var opts='<option value="">選擇出貨批次…</option>';
+  batchStats().forEach(function(st){
+    var id=st.row['批次編號']||'';if(!id)return;
+    opts+='<option value="'+esc(id)+'"'+(st.remaining<=0?' disabled':'')+'>'+esc(id)+'（剩 '+st.remaining+' 罐）</option>';
+  });
+  sel.innerHTML=opts;
 }
 async function saveOrderBatch(orderId,o){
   var sel=document.getElementById('batch-sel');var v=sel?sel.value:'';
   if(!v){toast('請先選擇批次');return}
   try{
     await apiPost({action:'setOrderBatch',orderId:orderId,batchId:v});
-    o['出貨批次']=v;batchCache=null; // 清快取，讓剩餘數重算
-    toast('出貨批次已設定：'+v);openOrder(o);
+    o['出貨批次']=v;
+    renderBatches(); // 剩餘數由訂單資料計算，馬上反映
+    toast('出貨批次已設定：'+v);
+    openOrder(o);
+    refresh();
   }catch(e){toast('設定失敗：'+e.message)}
 }
 async function deleteOrder(orderId){
-  if(!confirm('確定要刪除訂單 '+orderId+'？此動作無法復原，刪除後這筆資料就找不回來了。'))return;
+  if(!confirm('確定要刪除訂單 '+orderId+'？此動作無法復原，刪除後這筆資料就找不回來了。\n\n（如果只是取消訂單，建議改用「已取消」狀態，統計會自動排除）'))return;
   var btn=document.getElementById('del-ord-btn');
   if(btn){btn.disabled=true;btn.textContent='刪除中…'}
   try{
     await apiPost({action:'deleteOrder',orderId:orderId});
-    toast('訂單已刪除');cm('modal-order');allOrders=[];await loadOrders();
+    allOrders=allOrders.filter(function(x){return x['訂單編號']!==orderId});
+    cm('modal-order');
+    renderAll();saveCache();
+    toast('訂單已刪除');
+    refresh();
   }catch(e){
     toast('刪除失敗：'+e.message);
     if(btn){btn.disabled=false;btn.textContent='刪除此訂單'}
@@ -487,35 +618,49 @@ async function deleteOrder(orderId){
 async function updateStatus(orderId,status,btn){
   document.getElementById('sg').querySelectorAll('.sp').forEach(function(b){b.classList.remove('on')});
   btn.classList.add('on');
-  try{await apiPost({action:'updateOrderStatus',orderId:orderId,status:status});var o=allOrders.find(function(x){return x['訂單編號']===orderId});if(o)o['訂單狀態']=status;toast('狀態已更新：'+status)}
-  catch(e){toast('更新失敗：'+e.message)}
+  var o=allOrders.find(function(x){return x['訂單編號']===orderId});
+  try{
+    await apiPost({action:'updateOrderStatus',orderId:orderId,status:status});
+    if(o)o['訂單狀態']=status;
+    renderAll();saveCache(); // 總覽、庫存、批次剩餘同步反映（例如改「已取消」庫存會加回）
+    toast('狀態已更新：'+status);
+  }catch(e){toast('更新失敗：'+e.message);refresh()}
 }
-async function markPaid(orderId,cur){
-  if(cur==='已付款')return;
-  try{await apiPost({action:'updatePayment',orderId:orderId,paymentStatus:'已付款',paymentDate:today()});toast('已標記收款');cm('modal-order');allOrders=[];await loadOrders()}
-  catch(e){toast('失敗：'+e.message)}
+async function markPaid(orderId){
+  var o=allOrders.find(function(x){return x['訂單編號']===orderId});
+  if(o&&o['收款狀態']==='已付款')return;
+  try{
+    await apiPost({action:'updatePayment',orderId:orderId,paymentStatus:'已付款',paymentDate:today()});
+    if(o){o['收款狀態']='已付款';openOrder(o)}
+    saveCache();
+    toast('已標記收款');
+    refresh();
+  }catch(e){toast('失敗：'+e.message)}
 }
 async function saveTrackNo(orderId){
   var val=gv('track-in')||'';if(!val)return;
-  try{await apiPost({action:'updateOrderStatus',orderId:orderId,status:'已出貨',trackingNo:val,shipDate:today()});toast('物流單號已儲存');cm('modal-order');allOrders=[];await loadOrders()}
-  catch(e){toast('失敗：'+e.message)}
+  var o=allOrders.find(function(x){return x['訂單編號']===orderId});
+  try{
+    await apiPost({action:'updateOrderStatus',orderId:orderId,status:'已出貨',trackingNo:val,shipDate:today()});
+    if(o){o['物流單號']=val;o['訂單狀態']='已出貨';o['出貨日期']=today();openOrder(o)}
+    renderOrders();renderOverview();saveCache();
+    toast('物流單號已儲存');
+    refresh();
+  }catch(e){toast('失敗：'+e.message)}
 }
 
-// ── 庫存 ──
-async function loadStock(){
-  var el=document.getElementById('stock-content');
-  el.innerHTML='<div class="ld"><div class="dt"></div><div class="dt"></div><div class="dt"></div></div>';
-  try{var d=await apiGet('stock');stockData=d.items||[];finishedGoods=parseFloat(d.finishedGoods)||0;fgProduced=parseFloat(d.fgProduced)||0;fgSold=parseFloat(d.fgSold)||0;renderStock()}
-  catch(e){el.innerHTML='<div class="em"><div class="em-ic">⚠</div><div class="em-t">載入失敗</div></div>'}
-}
+// ══════════════════════════════════════════════════════════════
+// 庫存
+// ══════════════════════════════════════════════════════════════
 function renderStock(){
   var el=document.getElementById('stock-content');
+  if(!lastUpdated){el.innerHTML=loaderHtml();return}
   if(!stockData.length){el.innerHTML='<div class="em"><div class="em-ic">◫</div><div class="em-t">沒有庫存資料</div></div>';return}
+  var ov=computeOverview();
   var cats=[];stockData.forEach(function(s){var c=s['分類']||'其他';if(cats.indexOf(c)<0)cats.push(c)});
-  // 成品庫存（自動計算：生產批次 − 訂單，不含已取消）
-  var fgBadge=finishedGoods<=0?'<span class="bd b-warn">'+finishedGoods+' 罐</span>':'<span class="bd b-ok">'+finishedGoods+' 罐</span>';
+  var fgBadge=ov.finishedGoods<=0?'<span class="bd b-warn">'+ov.finishedGoods+' 罐</span>':'<span class="bd b-ok">'+ov.finishedGoods+' 罐</span>';
   var h='<div class="lbl">成品庫存</div>'+
-    '<div class="sk"><div class="sk-top"><div><div class="sk-name">初辣辣油（成品）</div><div class="sk-meta">自動計算：已生產 '+fmt(fgProduced)+' − 已訂購 '+fmt(fgSold)+'（不含已取消）</div></div>'+fgBadge+'</div></div>';
+    '<div class="sk"><div class="sk-top"><div><div class="sk-name">初辣辣油（成品）</div><div class="sk-meta">自動計算：已生產 '+fmt(ov.fgProduced)+' − 已訂購 '+fmt(ov.fgSold)+'（不含已取消）</div></div>'+fgBadge+'</div></div>';
   cats.forEach(function(cat){
     h+='<div class="lbl">'+esc(cat)+'</div>';
     stockData.filter(function(s){return(s['分類']||'其他')===cat}).forEach(function(s){
@@ -535,47 +680,47 @@ function renderStock(){
   el.querySelectorAll('.sk-edit').forEach(function(btn){btn.addEventListener('click',function(){openEditStockByIdx(parseInt(this.dataset.i))})});
 }
 function changeQty(idx,delta){var input=document.getElementById('qty-'+idx);if(!input)return;var v=Math.max(0,(parseFloat(input.value)||0)+delta);input.value=v}
-function qtyChanged(idx){}
 async function saveQty(idx){
   var item=stockData[idx];var qty=parseFloat(document.getElementById('qty-'+idx).value)||0;
-  try{await apiPost({action:'updateStock',name:item['品項名稱'],qty:qty});item['現有數量']=qty;toast(item['品項名稱']+' 已更新')}
-  catch(e){toast('更新失敗：'+e.message)}
+  try{
+    await apiPost({action:'updateStock',name:item['品項名稱'],qty:qty});
+    item['現有數量']=qty;
+    renderStock();renderOverview();saveCache(); // 庫存警示即時反映
+    toast(item['品項名稱']+' 已更新');
+  }catch(e){toast('更新失敗：'+e.message)}
 }
 
-// ── 支出 ──
-async function loadExpenses(){
+// ══════════════════════════════════════════════════════════════
+// 支出
+// ══════════════════════════════════════════════════════════════
+function renderExpenses(){
   var el=document.getElementById('expenses-content');
-  el.innerHTML='<div class="ld"><div class="dt"></div><div class="dt"></div><div class="dt"></div></div>';
-  try{
-    var data=await apiGet('expenses');expenseDataCache=data;
-    if(!data.length){el.innerHTML='<div class="em"><div class="em-ic">◈</div><div class="em-t">還沒有支出記錄</div><div class="em-d">點右下角 ＋ 新增</div></div>';return}
-    var now=new Date();var mt=0;
-    data.forEach(function(r){var d=new Date(r['日期']);if(d.getMonth()===now.getMonth()&&d.getFullYear()===now.getFullYear())mt+=parseFloat(r['金額（元）'])||0});
-    var rows=data.map(function(r,idx){
-      return'<div class="lr" data-idx="'+idx+'"><div class="lr-l"><div class="lr-t">'+esc(r['項目說明']||'—')+'</div><div class="lr-s">'+fmtDate(r['日期'])+'　'+esc(r['類別']||'')+(r['供應商／對象']?'　'+esc(r['供應商／對象']):'')+'</div></div><div class="lr-r"><div class="lr-a">$'+fmt(r['金額（元）'])+'</div></div></div>';
-    }).join('');
-    el.innerHTML='<div class="etotal"><div class="etotal-lbl">本月支出合計</div><div class="etotal-num">$'+fmt(mt)+'</div></div><div class="lbl">所有記錄</div><div class="lc">'+rows+'</div>';
-    el.querySelectorAll('.lr').forEach(function(row){row.addEventListener('click',function(){openEditExpense(expenseDataCache[parseInt(this.dataset.idx)],parseInt(this.dataset.idx))})});
-  }catch(e){el.innerHTML='<div class="em"><div class="em-ic">⚠</div><div class="em-t">載入失敗</div></div>'}
+  if(!lastUpdated){el.innerHTML=loaderHtml();return}
+  if(!expenseData.length){el.innerHTML='<div class="em"><div class="em-ic">◈</div><div class="em-t">還沒有支出記錄</div><div class="em-d">點右下角 ＋ 新增</div></div>';return}
+  var now=new Date();var mt=0;
+  expenseData.forEach(function(r){var d=new Date(r['日期']);if(!isNaN(d.getTime())&&d.getMonth()===now.getMonth()&&d.getFullYear()===now.getFullYear())mt+=parseFloat(r['金額（元）'])||0});
+  var rows=expenseData.map(function(r,idx){
+    return'<div class="lr" data-idx="'+idx+'"><div class="lr-l"><div class="lr-t">'+esc(r['項目說明']||'—')+'</div><div class="lr-s">'+fmtDate(r['日期'])+'　'+esc(r['類別']||'')+(r['供應商／對象']?'　'+esc(r['供應商／對象']):'')+'</div></div><div class="lr-r"><div class="lr-a">$'+fmt(r['金額（元）'])+'</div></div></div>';
+  }).join('');
+  el.innerHTML='<div class="etotal"><div class="etotal-lbl">本月支出合計</div><div class="etotal-num">$'+fmt(mt)+'</div></div><div class="lbl">所有記錄</div><div class="lc">'+rows+'</div>';
+  el.querySelectorAll('.lr').forEach(function(row){row.addEventListener('click',function(){openEditExpense(expenseData[parseInt(this.dataset.idx)])})});
 }
 
-// ── 生產批次 ──
-async function loadBatches(){
+// ══════════════════════════════════════════════════════════════
+// 生產批次
+// ══════════════════════════════════════════════════════════════
+function renderBatches(){
   var el=document.getElementById('batches-content');
-  el.innerHTML='<div class="ld"><div class="dt"></div><div class="dt"></div><div class="dt"></div></div>';
-  try{
-    var data=await apiGet('batches');
-    batchCache=data; // 順便更新批次快取
-    if(!data.length){el.innerHTML='<div class="em"><div class="em-ic">⊙</div><div class="em-t">還沒有生產記錄</div><div class="em-d">點右下角 ＋ 新增批次</div></div>';return}
-    var rows=data.map(function(r,idx){
-      var rem=parseFloat(r['_remaining']);rem=isNaN(rem)?0:rem;var shp=parseFloat(r['_shipped'])||0;
-      var exp=expiryOf(r['生產日期']);
-      return'<div class="lr" data-idx="'+idx+'"><div class="lr-l"><div class="lr-t">'+esc(r['批次編號']||'—')+'</div><div class="lr-s">'+fmtDate(r['生產日期'])+' 製'+(exp?'　效期至 '+exp:'')+(r['備註']?'　'+esc(r['備註']):'')+'</div></div><div class="lr-r"><div class="lr-a"'+(rem<=0?' style="color:var(--warn)"':'')+'>剩 '+rem+'／'+esc(r['產出瓶數']||'—')+' 瓶</div><div style="font-size:11px;color:var(--ink3)">已出 '+shp+'　每瓶 $'+(r['每瓶成本']?Math.round(parseFloat(r['每瓶成本'])):'—')+'</div></div></div>';
-    }).join('');
-    el.innerHTML='<div class="lc">'+rows+'</div>';
-    var batchData=data;
-    el.querySelectorAll('.lr').forEach(function(row){row.addEventListener('click',function(){openEditBatch(batchData[parseInt(this.dataset.idx)],parseInt(this.dataset.idx))})});
-  }catch(e){el.innerHTML='<div class="em"><div class="em-ic">⚠</div><div class="em-t">載入失敗</div></div>'}
+  if(!lastUpdated){el.innerHTML=loaderHtml();return}
+  if(!batchData.length){el.innerHTML='<div class="em"><div class="em-ic">⊙</div><div class="em-t">還沒有生產記錄</div><div class="em-d">點右下角 ＋ 新增批次</div></div>';return}
+  var stats=batchStats();
+  var rows=stats.map(function(st,idx){
+    var r=st.row;
+    var exp=expiryOf(r['生產日期']);
+    return'<div class="lr" data-idx="'+idx+'"><div class="lr-l"><div class="lr-t">'+esc(r['批次編號']||'—')+'</div><div class="lr-s">'+fmtDate(r['生產日期'])+' 製'+(exp?'　效期至 '+exp:'')+(r['備註']?'　'+esc(r['備註']):'')+'</div></div><div class="lr-r"><div class="lr-a"'+(st.remaining<=0?' style="color:var(--warn)"':'')+'>剩 '+st.remaining+'／'+esc(r['產出瓶數']||'—')+' 瓶</div><div style="font-size:11px;color:var(--ink3)">已出 '+st.shipped+'　每瓶 $'+(r['每瓶成本']?Math.round(parseFloat(r['每瓶成本'])):'—')+'</div></div></div>';
+  }).join('');
+  el.innerHTML='<div class="lc">'+rows+'</div>';
+  el.querySelectorAll('.lr').forEach(function(row){row.addEventListener('click',function(){openEditBatch(batchData[parseInt(this.dataset.idx)])})});
 }
 
 // 選「公關品／試吃」時單價自動帶 0（送的不算營收；仍會扣成品庫存）
@@ -584,13 +729,9 @@ document.getElementById('ao-source').addEventListener('change',function(){
   if(this.value.indexOf('公關品')>=0){p.value=0}else if(parseFloat(p.value)===0){p.value=220}
 });
 
-// ── 更新全部 ──
-async function loadAll(){
-  var icon=document.getElementById('si');icon.className='spin';
-  await Promise.all([loadOverview(),loadOrders(),loadStock()]);
-  icon.className='';toast('已更新');
-}
-
+// ══════════════════════════════════════════════════════════════
+// 寫入動作（成功後先更新畫面，再背景同步校正）
+// ══════════════════════════════════════════════════════════════
 // ── 新增支出 ──
 async function submitExpense(){
   var btn=document.getElementById('exp-submit');
@@ -598,7 +739,12 @@ async function submitExpense(){
   btn.disabled=true;btn.textContent='儲存中…';
   try{
     await apiPost({action:'addExpense',data:{date:gv('exp-date'),category:gv('exp-category'),description:gv('exp-desc'),amount:gv('exp-amount'),paymentMethod:gv('exp-payment'),supplier:gv('exp-supplier'),note:gv('exp-note')}});
-    toast('支出已記錄');cm('modal-expense');loadExpenses();
+    // 先塞進本地讓畫面立刻反映（_row 等背景同步後補上才可編輯）
+    expenseData.unshift({'日期':gv('exp-date'),'類別':gv('exp-category'),'項目說明':gv('exp-desc'),'金額（元）':parseFloat(gv('exp-amount'))||0,'付款方式':gv('exp-payment'),'供應商／對象':gv('exp-supplier'),'備註':gv('exp-note'),'_row':null});
+    renderExpenses();renderOverview();
+    toast('支出已記錄');cm('modal-expense');
+    ['exp-amount','exp-desc','exp-supplier','exp-note'].forEach(function(id){sv(id,'')});
+    refresh();
   }catch(e){toast('失敗：'+e.message)}
   finally{btn.disabled=false;btn.textContent='儲存支出'}
 }
@@ -609,8 +755,13 @@ async function submitBatch(){
   if(!gv('batch-qty')){toast('請填入產出瓶數');return}
   btn.disabled=true;btn.textContent='儲存中…';
   try{
-    await apiPost({action:'addBatch',data:{date:gv('batch-date'),qty:gv('batch-qty'),oil:gv('b-oil'),devil:gv('b-devil'),facing:gv('b-facing'),heart:gv('b-heart'),ejing:gv('b-ejing'),peppercorn:gv('b-peppercorn'),hungary:gv('b-hungary'),note:gv('batch-note')}});
-    toast('生產批次已記錄');cm('modal-batch');loadBatches();
+    var result=await apiPost({action:'addBatch',data:{date:gv('batch-date'),qty:gv('batch-qty'),oil:gv('b-oil'),devil:gv('b-devil'),facing:gv('b-facing'),heart:gv('b-heart'),ejing:gv('b-ejing'),peppercorn:gv('b-peppercorn'),hungary:gv('b-hungary'),note:gv('batch-note')}});
+    // 先塞進本地讓成品庫存立刻反映（成本欄等背景同步）
+    batchData.unshift({'批次編號':result.batchId,'生產日期':gv('batch-date'),'產出瓶數':parseFloat(gv('batch-qty'))||0,'備註':gv('batch-note'),'_row':null});
+    renderBatches();renderOverview();renderStock();
+    toast('生產批次已記錄：'+result.batchId);cm('modal-batch');
+    sv('batch-qty','');sv('batch-note','');
+    refresh();
   }catch(e){toast('失敗：'+e.message)}
   finally{btn.disabled=false;btn.textContent='儲存批次'}
 }
@@ -621,8 +772,16 @@ async function submitAddOrder(){
   if(!gv('ao-name')||!gv('ao-qty')){toast('請填入顧客姓名和數量');return}
   btn.disabled=true;btn.textContent='新增中…';
   try{
-    var result=await apiPost({action:'addOrder',data:{date:gv('ao-date'),source:gv('ao-source'),buyerName:gv('ao-name'),buyerPhone:gv('ao-phone'),qty:gv('ao-qty'),unitPrice:isNaN(parseFloat(gv('ao-price')))?220:parseFloat(gv('ao-price')),delivery:gv('ao-delivery'),address:gv('ao-address'),paymentMethod:gv('ao-payment'),lineName:gv('ao-line'),note:gv('ao-note')}});
-    toast('訂單已新增：'+result.orderId);cm('modal-addorder');allOrders=[];await loadOrders();gp('orders',document.querySelectorAll('.ni')[1]);
+    var price=parseFloat(gv('ao-price'));if(isNaN(price))price=220;
+    var qty=parseInt(gv('ao-qty'))||0;
+    var result=await apiPost({action:'addOrder',data:{date:gv('ao-date'),source:gv('ao-source'),buyerName:gv('ao-name'),buyerPhone:gv('ao-phone'),qty:qty,unitPrice:price,delivery:gv('ao-delivery'),address:gv('ao-address'),paymentMethod:gv('ao-payment'),lineName:gv('ao-line'),note:gv('ao-note')}});
+    // 先塞進本地讓列表與總覽立刻反映
+    allOrders.unshift({'訂單編號':result.orderId,'下單日期':gv('ao-date'),'來源管道':gv('ao-source'),'訂購人姓名':gv('ao-name'),'訂購人手機':gv('ao-phone'),'LINE名稱':gv('ao-line'),'訂購數量（瓶）':qty,'單價':price,'訂單金額':result.amount,'配送方式':gv('ao-delivery'),'收件人姓名':gv('ao-name'),'收件人手機':gv('ao-phone'),'收件地址':gv('ao-address'),'收款方式':gv('ao-payment'),'收款狀態':'未付款','訂單狀態':'待確認','備註':gv('ao-note')});
+    renderAll();
+    toast('訂單已新增：'+result.orderId);cm('modal-addorder');
+    ['ao-name','ao-phone','ao-qty','ao-address','ao-line','ao-note'].forEach(function(id){sv(id,'')});
+    gp('orders',document.querySelectorAll('.ni')[1]);
+    refresh();
   }catch(e){toast('失敗：'+e.message)}
   finally{btn.disabled=false;btn.textContent='新增訂單'}
 }
@@ -632,7 +791,8 @@ function openEditOrder(o){
   sv('eo-id',o['訂單編號']);
   sv('eo-date',toDate(o['下單日期']));ssel('eo-source',o['來源管道']);
   sv('eo-name',o['訂購人姓名']);sv('eo-phone',o['訂購人手機']);
-  sv('eo-qty',o['訂購數量（瓶）']);sv('eo-price',o['單價']||220);
+  sv('eo-qty',o['訂購數量（瓶）']);
+  sv('eo-price',kv(o,['單價'],220)); // ★ 0 元公關品不會被帶回 220
   ssel('eo-delivery',o['配送方式']);sv('eo-line',o['LINE名稱']);
   sv('eo-recvname',o['收件人姓名']);sv('eo-recvphone',o['收件人手機']);
   sv('eo-address',o['收件地址']);sv('eo-convbrand',o['超商品牌']);sv('eo-convstore',o['門市店號']);
@@ -643,14 +803,32 @@ async function submitEditOrder(){
   var btn=document.getElementById('eo-submit');
   btn.disabled=true;btn.textContent='儲存中…';
   try{
-    await apiPost({action:'editOrder',orderId:gv('eo-id'),data:{date:gv('eo-date'),source:gv('eo-source'),buyerName:gv('eo-name'),buyerPhone:gv('eo-phone'),qty:gv('eo-qty'),unitPrice:isNaN(parseFloat(gv('eo-price')))?220:parseFloat(gv('eo-price')),delivery:gv('eo-delivery'),lineName:gv('eo-line'),recvName:gv('eo-recvname'),recvPhone:gv('eo-recvphone'),address:gv('eo-address'),convBrand:gv('eo-convbrand'),convStore:gv('eo-convstore'),note:gv('eo-note')}});
-    toast('訂單已更新');cm('modal-edit-order');cm('modal-order');allOrders=[];await loadOrders();
+    var price=parseFloat(gv('eo-price'));if(isNaN(price))price=220;
+    var qty=parseInt(gv('eo-qty'))||0;
+    var oid=gv('eo-id');
+    await apiPost({action:'editOrder',orderId:oid,data:{date:gv('eo-date'),source:gv('eo-source'),buyerName:gv('eo-name'),buyerPhone:gv('eo-phone'),qty:qty,unitPrice:price,delivery:gv('eo-delivery'),lineName:gv('eo-line'),recvName:gv('eo-recvname'),recvPhone:gv('eo-recvphone'),address:gv('eo-address'),convBrand:gv('eo-convbrand'),convStore:gv('eo-convstore'),note:gv('eo-note')}});
+    // 本地同步更新，畫面立刻反映
+    var o=allOrders.find(function(x){return x['訂單編號']===oid});
+    if(o){
+      o['下單日期']=gv('eo-date');o['來源管道']=gv('eo-source');
+      o['訂購人姓名']=gv('eo-name');o['訂購人手機']=gv('eo-phone');
+      o['訂購數量（瓶）']=qty;o['單價']=price;o['訂單金額']=qty*price;
+      o['配送方式']=gv('eo-delivery');o['LINE名稱']=gv('eo-line');
+      o['收件人姓名']=gv('eo-recvname');o['收件人手機']=gv('eo-recvphone');
+      o['收件地址']=gv('eo-address');o['超商品牌']=gv('eo-convbrand');o['門市店號']=gv('eo-convstore');
+      o['備註']=gv('eo-note');
+    }
+    renderAll();saveCache();
+    toast('訂單已更新');cm('modal-edit-order');cm('modal-order');
+    refresh();
   }catch(e){toast('失敗：'+e.message)}
   finally{btn.disabled=false;btn.textContent='儲存修改'}
 }
 
 // ── 編輯支出 ──
-function openEditExpense(r,idx){
+function openEditExpense(r){
+  if(!r['_row']){toast('這筆剛新增的記錄同步中，幾秒後再試');return}
+  curExp=r;
   sv('ee-rowindex',r['_row']);sv('ee-date',toDate(r['日期']));ssel('ee-category',r['類別']);
   sv('ee-amount',r['金額（元）']);sv('ee-desc',r['項目說明']);
   ssel('ee-payment',r['付款方式']);sv('ee-supplier',r['供應商／對象']);sv('ee-note',r['備註']);
@@ -660,26 +838,41 @@ async function submitEditExpense(){
   var btn=document.getElementById('ee-submit');btn.disabled=true;btn.textContent='儲存中…';
   try{
     await apiPost({action:'editExpense',row:gv('ee-rowindex'),data:{date:gv('ee-date'),category:gv('ee-category'),description:gv('ee-desc'),amount:gv('ee-amount'),paymentMethod:gv('ee-payment'),supplier:gv('ee-supplier'),note:gv('ee-note')}});
-    toast('支出已更新');cm('modal-edit-expense');loadExpenses();
+    if(curExp){
+      curExp['日期']=gv('ee-date');curExp['類別']=gv('ee-category');curExp['項目說明']=gv('ee-desc');
+      curExp['金額（元）']=parseFloat(gv('ee-amount'))||0;curExp['付款方式']=gv('ee-payment');
+      curExp['供應商／對象']=gv('ee-supplier');curExp['備註']=gv('ee-note');
+    }
+    renderExpenses();renderOverview();saveCache();
+    toast('支出已更新');cm('modal-edit-expense');
+    refresh();
   }catch(e){toast('失敗：'+e.message)}
   finally{btn.disabled=false;btn.textContent='儲存修改'}
 }
 
 // ── 編輯批次 ──
-function openEditBatch(r,idx){
+function openEditBatch(r){
+  if(!r['_row']){toast('這筆剛新增的記錄同步中，幾秒後再試');return}
+  curBat=r;
   sv('eb-rowindex',r['_row']);sv('eb-date',toDate(r['生產日期']));
   sv('eb-qty',r['產出瓶數']);
-  sv('eb-oil',r['葵花油(ml)']||r['葵花油']||3000);sv('eb-devil',r['魔鬼椒粉(g)']||r['魔鬼椒粉']||20);
-  sv('eb-facing',r['朝天椒粉(g)']||r['朝天椒粉']||130);sv('eb-heart',r['雞心椒粉(g)']||r['雞心椒粉']||190);
-  sv('eb-ejing',r['二荊條粉(g)']||r['二荊條粉']||100);sv('eb-peppercorn',r['大紅袍花椒(g)']||r['大紅袍花椒']||90);
-  sv('eb-hungary',r['匈牙利紅椒粉(g)']||r['匈牙利紅椒粉']||20);sv('eb-note',r['備註']);
+  // ★ kv() 讓 0 也是有效值，不會被 || 換成預設配方
+  sv('eb-oil',kv(r,['葵花油(ml)','葵花油'],3000));sv('eb-devil',kv(r,['魔鬼椒粉(g)','魔鬼椒粉'],20));
+  sv('eb-facing',kv(r,['朝天椒粉(g)','朝天椒粉'],130));sv('eb-heart',kv(r,['雞心椒粉(g)','雞心椒粉'],190));
+  sv('eb-ejing',kv(r,['二荊條粉(g)','二荊條粉'],100));sv('eb-peppercorn',kv(r,['大紅袍花椒(g)','大紅袍花椒'],90));
+  sv('eb-hungary',kv(r,['匈牙利紅椒粉(g)','匈牙利紅椒粉'],20));sv('eb-note',r['備註']);
   om('modal-edit-batch');
 }
 async function submitEditBatch(){
   var btn=document.getElementById('eb-submit');btn.disabled=true;btn.textContent='儲存中…';
   try{
     await apiPost({action:'editBatch',row:gv('eb-rowindex'),data:{date:gv('eb-date'),qty:gv('eb-qty'),oil:gv('eb-oil'),devil:gv('eb-devil'),facing:gv('eb-facing'),heart:gv('eb-heart'),ejing:gv('eb-ejing'),peppercorn:gv('eb-peppercorn'),hungary:gv('eb-hungary'),note:gv('eb-note')}});
-    toast('批次已更新');cm('modal-edit-batch');loadBatches();
+    if(curBat){
+      curBat['生產日期']=gv('eb-date');curBat['產出瓶數']=parseFloat(gv('eb-qty'))||0;curBat['備註']=gv('eb-note');
+    }
+    renderBatches();renderOverview();renderStock();saveCache();
+    toast('批次已更新');cm('modal-edit-batch');
+    refresh();
   }catch(e){toast('失敗：'+e.message)}
   finally{btn.disabled=false;btn.textContent='儲存修改'}
 }
@@ -692,34 +885,43 @@ function openEditStockByIdx(idx){
   sv('es-name',s['品項名稱']);
   sv('es-idx',idx);
   // 採購規格欄位名稱有換行，用多種 key 嘗試
-  var specQty=s['採購規格']||s['採購規格\n（每包/瓶數量）']||'';
-  Object.keys(s).forEach(function(k){if(k.indexOf('採購規格')>=0)specQty=s[k]||specQty});
+  var specQty='';
+  Object.keys(s).forEach(function(k){if(k.indexOf('採購規格')>=0&&s[k]!==''&&s[k]!=null)specQty=s[k]});
   sv('es-specqty',specQty);
-  var price=s['採購價（元）']||s['採購價']||'';
-  Object.keys(s).forEach(function(k){if(k.indexOf('採購價')>=0)price=s[k]||price});
+  var price='';
+  Object.keys(s).forEach(function(k){if(k.indexOf('採購價')>=0&&s[k]!==''&&s[k]!=null)price=s[k]});
   sv('es-price',price);
-  sv('es-currentqty',s['現有數量']||'');
-  sv('es-safeqty',s['安全庫存量']||'');
+  sv('es-currentqty',kv(s,['現有數量'],''));
+  sv('es-safeqty',kv(s,['安全庫存量'],''));
   sv('es-supplier',s['供應商']||'');
   sv('es-note',s['備註']||'');
   om('modal-edit-stock');
 }
-
 async function submitEditStock(){
   var btn=document.getElementById('es-submit');btn.disabled=true;btn.textContent='儲存中…';
   try{
     await apiPost({action:'editStock',name:gv('es-name'),data:{specQty:gv('es-specqty'),price:gv('es-price'),currentQty:gv('es-currentqty'),safeQty:gv('es-safeqty'),supplier:gv('es-supplier'),note:gv('es-note')}});
-    toast(gv('es-name')+' 已更新');cm('modal-edit-stock');await loadStock();
+    var s=stockData[parseInt(gv('es-idx'))];
+    if(s){
+      s['現有數量']=parseFloat(gv('es-currentqty'))||0;
+      s['安全庫存量']=parseFloat(gv('es-safeqty'))||0;
+      s['供應商']=gv('es-supplier');s['備註']=gv('es-note');
+    }
+    renderStock();renderOverview();saveCache();
+    toast(gv('es-name')+' 已更新');cm('modal-edit-stock');
+    refresh();
   }catch(e){toast('失敗：'+e.message)}
   finally{btn.disabled=false;btn.textContent='儲存修改'}
 }
 
-// 顯示提示，等使用者點更新
-document.getElementById('page-overview').innerHTML =
-  '<div style="text-align:center;padding:60px 20px;color:var(--ink3)">' +
-  '<div style="font-size:40px;margin-bottom:16px;opacity:.3">◎</div>' +
-  '<div style="font-size:15px;font-weight:800;color:var(--ink2);margin-bottom:8px">點右上角「↻ 更新」載入資料</div>' +
-  '</div>';
+// ══════════════════════════════════════════════════════════════
+// 啟動：先顯示快取（秒開），背景自動載入最新資料
+// ══════════════════════════════════════════════════════════════
+(function init(){
+  var hadCache=false;
+  try{hadCache=loadCacheAndRender()}catch(x){}
+  loadAll(!hadCache);
+})();
 </script>
 </body>
 </html>
