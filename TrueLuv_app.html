@@ -592,7 +592,7 @@ function openOrder(o){
     '</div>'+
     '<div style="margin-top:16px"><div class="lbl" style="margin-top:0">更新狀態</div><div class="sg" id="sg">'+sPills+'</div></div>'+
     // 物流單號＋寄件費：永遠顯示、可修改（帶入現有值）
-    '<div style="margin-top:12px;display:flex;gap:8px"><input class="fi" id="track-in" placeholder="物流單號" value="'+esc(o['物流單號']||'')+'" style="flex:1;min-width:0">'+
+    '<div style="margin-top:12px;display:flex;gap:8px"><input class="fi" id="track-in" placeholder="物流單號（選填）" value="'+esc(o['物流單號']||'')+'" style="flex:1;min-width:0">'+
       (shipExp?'':'<input class="fi" type="number" id="ship-cost-in" placeholder="寄件費$" style="width:96px">')+
       '<button class="btn btn-blk" style="width:auto;padding:13px 16px;margin-top:0" id="track-btn">'+(o['物流單號']?'更新':'儲存')+'</button></div>'+
     '<div style="font-size:11px;color:var(--ink3);margin-top:4px">'+(shipExp?'寄件費 $'+fmt(shipExp['金額（元）'])+' 已記入支出；要改金額請到「支出」頁點該筆修改':'寄件費是你們實際付的錢，填了會自動記一筆「運費／寄件」支出')+'</div>'+
@@ -676,13 +676,15 @@ async function markPaid(orderId){
   }catch(e){toast('失敗：'+e.message)}
 }
 async function saveTrackNo(orderId){
-  var val=gv('track-in')||'';if(!val){toast('請填入物流單號');return}
+  var val=String(gv('track-in')||'').trim(); // ★ 選填：留空儲存＝清除單號
   var costEl=document.getElementById('ship-cost-in');
   var cost=costEl?(parseFloat(costEl.value)||0):0;
   var o=allOrders.find(function(x){return x['訂單編號']===orderId});
+  var hadNo=!!(o&&o['物流單號']);
+  if(!val&&!cost&&!hadNo){toast('請填入物流單號或寄件費');return}
   var cur=(o&&o['訂單狀態'])||'';
-  // 修正單號時不要把「已送達」拉回「已出貨」；出貨日期已存在時後端不會覆蓋
-  var newStatus=(cur==='已送達'||cur==='已取消')?cur:'已出貨';
+  // 只有「有填單號」才自動推進成已出貨；清除單號或只記寄件費時維持原狀態
+  var newStatus=(val&&cur!=='已送達'&&cur!=='已取消')?'已出貨':(cur||'待確認');
   try{
     await apiPost({action:'updateOrderStatus',orderId:orderId,status:newStatus,trackingNo:val});
     // ★ 有填寄件費且尚未記過 → 自動記一筆「運費／寄件」支出（同一張訂單只記一次，避免重複）
@@ -696,9 +698,13 @@ async function saveTrackNo(orderId){
         expenseData.unshift({'日期':today(),'類別':'運費／寄件','項目說明':desc,'金額（元）':cost,'付款方式':'','供應商／對象':(o&&o['配送方式'])||'','備註':'出貨時自動記錄','_row':null});
       }
     }
-    if(o){o['物流單號']=val;o['訂單狀態']=newStatus;if(!o['出貨日期']&&newStatus==='已出貨')o['出貨日期']=today();openOrder(o)}
+    if(o){
+      o['物流單號']=val;o['訂單狀態']=newStatus;
+      if(val&&newStatus==='已出貨'&&!o['出貨日期'])o['出貨日期']=today();
+      openOrder(o);
+    }
     renderOrders();renderExpenses();renderOverview();saveCache();
-    toast(cost>0?'已儲存，寄件費 $'+fmt(cost)+' 已記入支出':'物流單號已儲存');
+    toast(!val&&hadNo?'物流單號已清除':(cost>0?'已儲存，寄件費 $'+fmt(cost)+' 已記入支出':'物流單號已儲存'));
     refresh();
   }catch(e){toast('失敗：'+e.message)}
 }
