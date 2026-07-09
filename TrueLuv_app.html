@@ -197,8 +197,8 @@ nav{position:fixed;bottom:0;left:0;right:0;background:var(--sf);border-top:1px s
   <div class="f2"><div class="fg"><label class="fl">下單日期</label><input class="fi" type="date" id="ao-date"></div><div class="fg"><label class="fl">來源</label><select class="fi fi-s" id="ao-source"><option>朋友介紹</option><option>LINE官方帳號</option><option>市集現場</option><option>Instagram</option><option>公關品</option></select></div></div>
   <div class="f2"><div class="fg"><label class="fl">顧客姓名</label><input class="fi" id="ao-name" placeholder="姓名"></div><div class="fg"><label class="fl">手機</label><input class="fi" type="tel" id="ao-phone" placeholder="09xx"></div></div>
   <div class="f2"><div class="fg"><label class="fl">數量（瓶）</label><input class="fi" type="number" id="ao-qty" placeholder="1"></div><div class="fg"><label class="fl">單價（元）</label><input class="fi" type="number" id="ao-price" value="220"></div></div>
-  <div class="fg"><label class="fl">配送方式</label><select class="fi fi-s" id="ao-delivery"><option>宅配到府</option><option>超商取貨</option><option>面交</option></select></div>
-  <div class="f2"><div class="fg"><label class="fl">運費（元）</label><input class="fi" type="number" id="ao-shipfee" value="120"></div><div class="fg"><label class="fl">出貨批次</label><select class="fi fi-s" id="ao-batch"><option value="">暫不指定</option></select></div></div>
+  <div class="fg"><label class="fl">配送方式</label><select class="fi fi-s" id="ao-delivery"><option>宅配到府</option><option>郵局寄送</option><option>超商取貨</option><option>面交</option></select></div>
+  <div class="f2"><div class="fg"><label class="fl">運費（向顧客收）</label><input class="fi" type="number" id="ao-shipfee" value="120"></div><div class="fg"><label class="fl">出貨批次</label><select class="fi fi-s" id="ao-batch"><option value="">暫不指定</option></select></div></div>
   <div style="font-size:12px;color:#8A8578;margin:-6px 2px 10px" id="ao-total"></div>
   <div class="fg"><label class="fl">收件地址</label><input class="fi" id="ao-address" placeholder="宅配地址或超商門市"></div>
   <div class="f2"><div class="fg" id="ao-payment-fg"><label class="fl">收款方式</label><select class="fi fi-s" id="ao-payment"><option>匯款</option><option>LINE Pay</option><option>現金</option></select></div><div class="fg"><label class="fl">LINE名稱</label><input class="fi" id="ao-line" placeholder="選填"></div></div>
@@ -214,7 +214,7 @@ nav{position:fixed;bottom:0;left:0;right:0;background:var(--sf);border-top:1px s
   <div class="f2"><div class="fg"><label class="fl">下單日期</label><input class="fi" type="date" id="eo-date"></div><div class="fg"><label class="fl">來源</label><select class="fi fi-s" id="eo-source"><option>朋友介紹</option><option>Google表單</option><option>LINE官方帳號</option><option>市集現場</option><option>Instagram</option><option>公關品</option></select></div></div>
   <div class="f2"><div class="fg"><label class="fl">顧客姓名</label><input class="fi" id="eo-name"></div><div class="fg"><label class="fl">手機</label><input class="fi" type="tel" id="eo-phone"></div></div>
   <div class="f2"><div class="fg"><label class="fl">數量（瓶）</label><input class="fi" type="number" id="eo-qty"></div><div class="fg"><label class="fl">單價（元）</label><input class="fi" type="number" id="eo-price"></div></div>
-  <div class="f2"><div class="fg"><label class="fl">配送方式</label><select class="fi fi-s" id="eo-delivery"><option>宅配到府</option><option>超商取貨</option><option>面交</option></select></div><div class="fg"><label class="fl">運費（元）</label><input class="fi" type="number" id="eo-shipfee"></div></div>
+  <div class="f2"><div class="fg"><label class="fl">配送方式</label><select class="fi fi-s" id="eo-delivery"><option>宅配到府</option><option>郵局寄送</option><option>超商取貨</option><option>面交</option></select></div><div class="fg"><label class="fl">運費（向顧客收）</label><input class="fi" type="number" id="eo-shipfee" placeholder="免運填0；自付寄件費請記支出"></div></div>
   <div class="fg"><label class="fl">LINE名稱</label><input class="fi" id="eo-line"></div>
   <div class="fg"><label class="fl">收件人姓名</label><input class="fi" id="eo-recvname"></div>
   <div class="fg"><label class="fl">收件人手機</label><input class="fi" type="tel" id="eo-recvphone"></div>
@@ -415,14 +415,18 @@ function renderAll(){
 function computeOverview(){
   var now=new Date(),m=now.getMonth(),y=now.getFullYear();
   var o={monthRevenue:0,monthExpense:0,monthOrders:0,pendingCount:0,shippedCount:0,
-         totalRevenue:0,totalExpense:0,fgProduced:0,fgShipped:0,lowStock:[]};
+         totalRevenue:0,totalExpense:0,fgProduced:0,fgShipped:0,lowStock:[],
+         monthShipIn:0,monthShipOut:0};
   allOrders.forEach(function(r){
     var st=r['訂單狀態']||'';
     if(st==='已取消')return; // ★ 已取消不計入營收、訂單數
     var amt=parseFloat(r['訂單金額'])||0;
     o.totalRevenue+=amt;
     var d=new Date(r['下單日期']);
-    if(!isNaN(d.getTime())&&d.getMonth()===m&&d.getFullYear()===y){o.monthRevenue+=amt;o.monthOrders++}
+    if(!isNaN(d.getTime())&&d.getMonth()===m&&d.getFullYear()===y){
+      o.monthRevenue+=amt;o.monthOrders++;
+      o.monthShipIn+=parseFloat(r['運費'])||0; // 本月向顧客收的運費
+    }
     if(st==='待確認'||st==='已確認'||st==='備貨中')o.pendingCount++;
     if(st==='已出貨')o.shippedCount++;
   });
@@ -430,7 +434,10 @@ function computeOverview(){
     var amt=parseFloat(r['金額（元）'])||0;
     o.totalExpense+=amt;
     var d=new Date(r['日期']);
-    if(!isNaN(d.getTime())&&d.getMonth()===m&&d.getFullYear()===y)o.monthExpense+=amt;
+    if(!isNaN(d.getTime())&&d.getMonth()===m&&d.getFullYear()===y){
+      o.monthExpense+=amt;
+      if(String(r['類別']||'').indexOf('運費')>=0||String(r['類別']||'').indexOf('寄件')>=0)o.monthShipOut+=amt; // 本月寄件支出
+    }
   });
   // ★ 成品庫存以「生產」頁為準：各批次剩餘加總
   //   （產出瓶數 − 已指定「出貨批次」的訂單瓶數，不含已取消）
@@ -491,6 +498,12 @@ function renderOverview(){
       '<div class="sum-row"><span class="sum-key">本月收入</span><span class="sum-val pos">$'+fmt(d.monthRevenue)+'</span></div>'+
       '<div class="sum-row"><span class="sum-key">本月支出</span><span class="sum-val neg">$'+fmt(d.monthExpense)+'</span></div>'+
       '<div class="sum-row"><span class="sum-key" style="font-weight:700">本月結餘</span><span class="sum-val '+(profit>=0?'pos':'neg')+'" style="font-size:17px">$'+fmt(profit)+'</span></div>'+
+    '</div>'+
+    '<div class="lbl">運費（本月）</div>'+
+    '<div class="sum-card">'+
+      '<div class="sum-row"><span class="sum-key">向顧客收</span><span class="sum-val pos">$'+fmt(d.monthShipIn)+'</span></div>'+
+      '<div class="sum-row"><span class="sum-key">寄件支出</span><span class="sum-val neg">$'+fmt(d.monthShipOut)+'</span></div>'+
+      '<div class="sum-row"><span class="sum-key" style="font-weight:700">'+((d.monthShipIn-d.monthShipOut)>=0?'運費小賺':'運費貼補')+'</span><span class="sum-val '+((d.monthShipIn-d.monthShipOut)>=0?'pos':'neg')+'" style="font-size:15px">$'+fmt(Math.abs(d.monthShipIn-d.monthShipOut))+'</span></div>'+
     '</div>'+
     '<div class="lbl">累計（開始至今）</div>'+
     '<div class="sum-card">'+
@@ -562,7 +575,7 @@ function openOrder(o){
     :'<button class="btn btn-blk" style="flex:1;margin-top:0;background:'+(isPaid?'#999':'var(--grn)')+'" id="pay-btn">'+(isPaid?'已收款 ✓':'標記已收款')+'</button>';
   document.getElementById('mo-body').innerHTML=
     dr('顧客',esc(o['訂購人姓名']))+dr('手機',esc(o['訂購人手機']))+dr('LINE',esc(o['LINE名稱']))+dr('來源',esc(o['來源管道']))+
-    dr('數量',esc(qty)+' 瓶')+dr('運費','$'+fmt(o['運費']||0))+dr('金額','$'+fmt(o['訂單金額'])+'（含運費）')+
+    dr('數量',esc(qty)+' 瓶')+dr('運費（向顧客收）','$'+fmt(o['運費']||0))+dr('金額','$'+fmt(o['訂單金額'])+'（含運費）')+
     '<div class="dvl"></div>'+
     dr('配送',esc(o['配送方式']))+dr('收件人',esc(o['收件人姓名']))+dr('地址',esc(o['收件地址']))+
     (o['超商品牌']?dr('超商',esc(o['超商品牌'])+' '+esc(o['門市店號']||'')):'')+'<div class="dvl"></div>'+
@@ -575,7 +588,7 @@ function openOrder(o){
       '<button class="btn btn-blk" style="flex:1;margin-top:0;background:#2D2D2D" id="edit-ord-btn">編輯</button>'+
     '</div>'+
     '<div style="margin-top:16px"><div class="lbl" style="margin-top:0">更新狀態</div><div class="sg" id="sg">'+sPills+'</div></div>'+
-    (!o['物流單號']?'<div style="margin-top:12px;display:flex;gap:8px"><input class="fi" id="track-in" placeholder="填入物流單號" style="flex:1"><button class="btn btn-blk" style="width:auto;padding:13px 16px;margin-top:0" id="track-btn">儲存</button></div>':'')+
+    (!o['物流單號']?'<div style="margin-top:12px;display:flex;gap:8px"><input class="fi" id="track-in" placeholder="物流單號" style="flex:1;min-width:0"><input class="fi" type="number" id="ship-cost-in" placeholder="寄件費$" style="width:96px"><button class="btn btn-blk" style="width:auto;padding:13px 16px;margin-top:0" id="track-btn">儲存</button></div><div style="font-size:11px;color:var(--ink3);margin-top:4px">寄件費是你們實際付的錢，填了會自動記一筆「運費／寄件」支出</div>':'')+
     (!o['出貨批次']?'<div style="margin-top:12px;display:flex;gap:8px"><select class="fi fi-s" id="batch-sel" style="flex:1"><option value="">選擇出貨批次…</option></select><button class="btn btn-blk" style="width:auto;padding:13px 16px;margin-top:0" id="batch-btn">儲存</button></div>':'')+
     '<button class="btn btn-danger" id="del-ord-btn">刪除此訂單</button>';
   om('modal-order');
@@ -652,12 +665,19 @@ async function markPaid(orderId){
 }
 async function saveTrackNo(orderId){
   var val=gv('track-in')||'';if(!val)return;
+  var cost=parseFloat(gv('ship-cost-in'))||0;
   var o=allOrders.find(function(x){return x['訂單編號']===orderId});
   try{
     await apiPost({action:'updateOrderStatus',orderId:orderId,status:'已出貨',trackingNo:val,shipDate:today()});
+    // ★ 有填寄件費 → 自動記一筆「運費／寄件」支出，不用再切到支出頁補
+    if(cost>0){
+      var desc='寄件費 '+orderId;
+      await apiPost({action:'addExpense',data:{date:today(),category:'運費／寄件',description:desc,amount:cost,paymentMethod:'',supplier:(o&&o['配送方式'])||'',note:'出貨時自動記錄'}});
+      expenseData.unshift({'日期':today(),'類別':'運費／寄件','項目說明':desc,'金額（元）':cost,'付款方式':'','供應商／對象':(o&&o['配送方式'])||'','備註':'出貨時自動記錄','_row':null});
+    }
     if(o){o['物流單號']=val;o['訂單狀態']='已出貨';o['出貨日期']=today();openOrder(o)}
-    renderOrders();renderOverview();saveCache();
-    toast('物流單號已儲存');
+    renderOrders();renderExpenses();renderOverview();saveCache();
+    toast(cost>0?'已出貨，寄件費 $'+fmt(cost)+' 已記入支出':'物流單號已儲存');
     refresh();
   }catch(e){toast('失敗：'+e.message)}
 }
@@ -744,7 +764,7 @@ function calcShipFee(){
   if(isPRSource())return 0;
   if(dv==='面交')return 0;
   if(dv==='超商取貨')return Math.max(1,Math.ceil(Math.max(qty,1)/4))*60;
-  if(dv==='宅配到府')return qty>=5?0:120;
+  if(dv==='宅配到府'||dv==='郵局寄送')return qty>=5?0:120; // 郵局比照宅配：向顧客收 120、滿 5 瓶免運
   return 0;
 }
 function refreshAoFee(){sv('ao-shipfee',calcShipFee());updateAoTotal()}
@@ -755,7 +775,7 @@ function updateAoTotal(){
   var el=document.getElementById('ao-total');if(!el)return;
   var extra='';
   if(gv('ao-delivery')==='超商取貨'&&qty>4)extra='　※超過4瓶拆'+Math.ceil(qty/4)+'箱寄，或改宅配免運';
-  if(gv('ao-delivery')==='宅配到府'&&qty>=5&&fee===0)extra='　※滿5瓶宅配免運';
+  if((gv('ao-delivery')==='宅配到府'||gv('ao-delivery')==='郵局寄送')&&qty>=5&&fee===0)extra='　※滿5瓶免運';
   el.textContent='訂單金額 $'+fmt(qty*price+fee)+'＝'+qty+'瓶×$'+fmt(price)+'＋運費$'+fmt(fee)+extra;
 }
 function toggleAoPayment(){
