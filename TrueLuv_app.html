@@ -570,12 +570,15 @@ function openOrder(o){
   var sPills=['待確認','已確認','備貨中','已出貨','已送達','已取消'].map(function(s){
     return'<button class="sp'+(cur===s?' on':'')+'" data-s="'+s+'">'+s+'</button>';
   }).join('');
+  // 這張訂單的寄件費（出貨時自動記到支出的那筆）
+  var shipExp=expenseData.find(function(x){return String(x['項目說明']||'')==='寄件費 '+oid});
   var payBtn=isFree
     ?'<button class="btn btn-blk" style="flex:1;margin-top:0;background:#999" disabled>免收款</button>'
     :'<button class="btn btn-blk" style="flex:1;margin-top:0;background:'+(isPaid?'#999':'var(--grn)')+'" id="pay-btn">'+(isPaid?'已收款 ✓':'標記已收款')+'</button>';
   document.getElementById('mo-body').innerHTML=
     dr('顧客',esc(o['訂購人姓名']))+dr('手機',esc(o['訂購人手機']))+dr('LINE',esc(o['LINE名稱']))+dr('來源',esc(o['來源管道']))+
     dr('數量',esc(qty)+' 瓶')+dr('運費（向顧客收）','$'+fmt(o['運費']||0))+dr('金額','$'+fmt(o['訂單金額'])+'（含運費）')+
+    dr('寄件費（我們付）',shipExp?'$'+fmt(shipExp['金額（元）'])+'（已記支出）':'—')+
     '<div class="dvl"></div>'+
     dr('配送',esc(o['配送方式']))+dr('收件人',esc(o['收件人姓名']))+dr('地址',esc(o['收件地址']))+
     (o['超商品牌']?dr('超商',esc(o['超商品牌'])+' '+esc(o['門市店號']||'')):'')+'<div class="dvl"></div>'+
@@ -588,8 +591,13 @@ function openOrder(o){
       '<button class="btn btn-blk" style="flex:1;margin-top:0;background:#2D2D2D" id="edit-ord-btn">編輯</button>'+
     '</div>'+
     '<div style="margin-top:16px"><div class="lbl" style="margin-top:0">更新狀態</div><div class="sg" id="sg">'+sPills+'</div></div>'+
-    (!o['物流單號']?'<div style="margin-top:12px;display:flex;gap:8px"><input class="fi" id="track-in" placeholder="物流單號" style="flex:1;min-width:0"><input class="fi" type="number" id="ship-cost-in" placeholder="寄件費$" style="width:96px"><button class="btn btn-blk" style="width:auto;padding:13px 16px;margin-top:0" id="track-btn">儲存</button></div><div style="font-size:11px;color:var(--ink3);margin-top:4px">寄件費是你們實際付的錢，填了會自動記一筆「運費／寄件」支出</div>':'')+
-    (!o['出貨批次']?'<div style="margin-top:12px;display:flex;gap:8px"><select class="fi fi-s" id="batch-sel" style="flex:1"><option value="">選擇出貨批次…</option></select><button class="btn btn-blk" style="width:auto;padding:13px 16px;margin-top:0" id="batch-btn">儲存</button></div>':'')+
+    // 物流單號＋寄件費：永遠顯示、可修改（帶入現有值）
+    '<div style="margin-top:12px;display:flex;gap:8px"><input class="fi" id="track-in" placeholder="物流單號" value="'+esc(o['物流單號']||'')+'" style="flex:1;min-width:0">'+
+      (shipExp?'':'<input class="fi" type="number" id="ship-cost-in" placeholder="寄件費$" style="width:96px">')+
+      '<button class="btn btn-blk" style="width:auto;padding:13px 16px;margin-top:0" id="track-btn">'+(o['物流單號']?'更新':'儲存')+'</button></div>'+
+    '<div style="font-size:11px;color:var(--ink3);margin-top:4px">'+(shipExp?'寄件費 $'+fmt(shipExp['金額（元）'])+' 已記入支出；要改金額請到「支出」頁點該筆修改':'寄件費是你們實際付的錢，填了會自動記一筆「運費／寄件」支出')+'</div>'+
+    // 出貨批次：永遠顯示、可修改（帶入現有值）
+    '<div style="margin-top:12px;display:flex;gap:8px"><select class="fi fi-s" id="batch-sel" style="flex:1"><option value="">選擇出貨批次…</option></select><button class="btn btn-blk" style="width:auto;padding:13px 16px;margin-top:0" id="batch-btn">'+(o['出貨批次']?'更新':'儲存')+'</button></div>'+
     '<button class="btn btn-danger" id="del-ord-btn">刪除此訂單</button>';
   om('modal-order');
   // 綁事件
@@ -601,26 +609,30 @@ function openOrder(o){
   var bb=document.getElementById('batch-btn');
   if(bb){
     bb.addEventListener('click',function(){saveOrderBatch(oid,o)});
-    fillBatchOptions(); // 從本地批次資料填入下拉選單，不需要再打 API
+    fillBatchOptions(o['出貨批次']||''); // 從本地批次資料填入下拉，帶入目前指定的批次
   }
 }
-function fillBatchOptions(){
+function fillBatchOptions(currentId){
   var sel=document.getElementById('batch-sel');if(!sel)return;
   var opts='<option value="">選擇出貨批次…</option>';
   batchStats().forEach(function(st){
-    var id=st.row['批次編號']||'';if(!id)return;
-    opts+='<option value="'+esc(id)+'"'+(st.remaining<=0?' disabled':'')+'>'+esc(id)+'（剩 '+st.remaining+' 罐）</option>';
+    var id=String(st.row['批次編號']||'').trim();if(!id)return;
+    // 目前指定的批次即使剩 0 也要可選，否則帶不進現值
+    var dis=st.remaining<=0&&id!==currentId;
+    opts+='<option value="'+esc(id)+'"'+(dis?' disabled':'')+'>'+esc(id)+'（剩 '+st.remaining+' 罐）</option>';
   });
   sel.innerHTML=opts;
+  if(currentId)sel.value=currentId;
 }
 async function saveOrderBatch(orderId,o){
   var sel=document.getElementById('batch-sel');var v=sel?sel.value:'';
   if(!v){toast('請先選擇批次');return}
+  if(v===o['出貨批次']){toast('批次沒有變更');return}
   try{
     await apiPost({action:'setOrderBatch',orderId:orderId,batchId:v});
     o['出貨批次']=v;
-    renderBatches(); // 剩餘數由訂單資料計算，馬上反映
-    toast('出貨批次已設定：'+v);
+    renderBatches();renderOverview(); // 各批次剩餘與成品庫存馬上反映
+    toast('出貨批次已更新：'+v);
     openOrder(o);
     refresh();
   }catch(e){toast('設定失敗：'+e.message)}
@@ -664,20 +676,29 @@ async function markPaid(orderId){
   }catch(e){toast('失敗：'+e.message)}
 }
 async function saveTrackNo(orderId){
-  var val=gv('track-in')||'';if(!val)return;
-  var cost=parseFloat(gv('ship-cost-in'))||0;
+  var val=gv('track-in')||'';if(!val){toast('請填入物流單號');return}
+  var costEl=document.getElementById('ship-cost-in');
+  var cost=costEl?(parseFloat(costEl.value)||0):0;
   var o=allOrders.find(function(x){return x['訂單編號']===orderId});
+  var cur=(o&&o['訂單狀態'])||'';
+  // 修正單號時不要把「已送達」拉回「已出貨」；出貨日期已存在時後端不會覆蓋
+  var newStatus=(cur==='已送達'||cur==='已取消')?cur:'已出貨';
   try{
-    await apiPost({action:'updateOrderStatus',orderId:orderId,status:'已出貨',trackingNo:val,shipDate:today()});
-    // ★ 有填寄件費 → 自動記一筆「運費／寄件」支出，不用再切到支出頁補
+    await apiPost({action:'updateOrderStatus',orderId:orderId,status:newStatus,trackingNo:val});
+    // ★ 有填寄件費且尚未記過 → 自動記一筆「運費／寄件」支出（同一張訂單只記一次，避免重複）
     if(cost>0){
       var desc='寄件費 '+orderId;
-      await apiPost({action:'addExpense',data:{date:today(),category:'運費／寄件',description:desc,amount:cost,paymentMethod:'',supplier:(o&&o['配送方式'])||'',note:'出貨時自動記錄'}});
-      expenseData.unshift({'日期':today(),'類別':'運費／寄件','項目說明':desc,'金額（元）':cost,'付款方式':'','供應商／對象':(o&&o['配送方式'])||'','備註':'出貨時自動記錄','_row':null});
+      var dup=expenseData.find(function(x){return String(x['項目說明']||'')===desc});
+      if(dup){
+        toast('這張訂單的寄件費已記過，請到「支出」頁修改該筆');
+      }else{
+        await apiPost({action:'addExpense',data:{date:today(),category:'運費／寄件',description:desc,amount:cost,paymentMethod:'',supplier:(o&&o['配送方式'])||'',note:'出貨時自動記錄'}});
+        expenseData.unshift({'日期':today(),'類別':'運費／寄件','項目說明':desc,'金額（元）':cost,'付款方式':'','供應商／對象':(o&&o['配送方式'])||'','備註':'出貨時自動記錄','_row':null});
+      }
     }
-    if(o){o['物流單號']=val;o['訂單狀態']='已出貨';o['出貨日期']=today();openOrder(o)}
+    if(o){o['物流單號']=val;o['訂單狀態']=newStatus;if(!o['出貨日期']&&newStatus==='已出貨')o['出貨日期']=today();openOrder(o)}
     renderOrders();renderExpenses();renderOverview();saveCache();
-    toast(cost>0?'已出貨，寄件費 $'+fmt(cost)+' 已記入支出':'物流單號已儲存');
+    toast(cost>0?'已儲存，寄件費 $'+fmt(cost)+' 已記入支出':'物流單號已儲存');
     refresh();
   }catch(e){toast('失敗：'+e.message)}
 }
