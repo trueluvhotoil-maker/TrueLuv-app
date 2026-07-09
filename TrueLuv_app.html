@@ -198,8 +198,10 @@ nav{position:fixed;bottom:0;left:0;right:0;background:var(--sf);border-top:1px s
   <div class="f2"><div class="fg"><label class="fl">顧客姓名</label><input class="fi" id="ao-name" placeholder="姓名"></div><div class="fg"><label class="fl">手機</label><input class="fi" type="tel" id="ao-phone" placeholder="09xx"></div></div>
   <div class="f2"><div class="fg"><label class="fl">數量（瓶）</label><input class="fi" type="number" id="ao-qty" placeholder="1"></div><div class="fg"><label class="fl">單價（元）</label><input class="fi" type="number" id="ao-price" value="220"></div></div>
   <div class="fg"><label class="fl">配送方式</label><select class="fi fi-s" id="ao-delivery"><option>宅配到府</option><option>超商取貨</option><option>面交</option></select></div>
+  <div class="f2"><div class="fg"><label class="fl">運費（元）</label><input class="fi" type="number" id="ao-shipfee" value="120"></div><div class="fg"><label class="fl">出貨批次</label><select class="fi fi-s" id="ao-batch"><option value="">暫不指定</option></select></div></div>
+  <div style="font-size:12px;color:#8A8578;margin:-6px 2px 10px" id="ao-total"></div>
   <div class="fg"><label class="fl">收件地址</label><input class="fi" id="ao-address" placeholder="宅配地址或超商門市"></div>
-  <div class="f2"><div class="fg"><label class="fl">收款方式</label><select class="fi fi-s" id="ao-payment"><option>匯款</option><option>LINE Pay</option><option>現金</option></select></div><div class="fg"><label class="fl">LINE名稱</label><input class="fi" id="ao-line" placeholder="選填"></div></div>
+  <div class="f2"><div class="fg" id="ao-payment-fg"><label class="fl">收款方式</label><select class="fi fi-s" id="ao-payment"><option>匯款</option><option>LINE Pay</option><option>現金</option></select></div><div class="fg"><label class="fl">LINE名稱</label><input class="fi" id="ao-line" placeholder="選填"></div></div>
   <div class="fg"><label class="fl">備註</label><input class="fi" id="ao-note" placeholder="選填"></div>
   <button class="btn btn-blk" id="ao-submit" onclick="submitAddOrder()">新增訂單</button>
   <button class="btn btn-ghost" onclick="cm('modal-addorder')">取消</button>
@@ -212,7 +214,8 @@ nav{position:fixed;bottom:0;left:0;right:0;background:var(--sf);border-top:1px s
   <div class="f2"><div class="fg"><label class="fl">下單日期</label><input class="fi" type="date" id="eo-date"></div><div class="fg"><label class="fl">來源</label><select class="fi fi-s" id="eo-source"><option>朋友介紹</option><option>Google表單</option><option>LINE官方帳號</option><option>市集現場</option><option>Instagram</option><option>公關品</option></select></div></div>
   <div class="f2"><div class="fg"><label class="fl">顧客姓名</label><input class="fi" id="eo-name"></div><div class="fg"><label class="fl">手機</label><input class="fi" type="tel" id="eo-phone"></div></div>
   <div class="f2"><div class="fg"><label class="fl">數量（瓶）</label><input class="fi" type="number" id="eo-qty"></div><div class="fg"><label class="fl">單價（元）</label><input class="fi" type="number" id="eo-price"></div></div>
-  <div class="f2"><div class="fg"><label class="fl">配送方式</label><select class="fi fi-s" id="eo-delivery"><option>宅配到府</option><option>超商取貨</option><option>面交</option></select></div><div class="fg"><label class="fl">LINE名稱</label><input class="fi" id="eo-line"></div></div>
+  <div class="f2"><div class="fg"><label class="fl">配送方式</label><select class="fi fi-s" id="eo-delivery"><option>宅配到府</option><option>超商取貨</option><option>面交</option></select></div><div class="fg"><label class="fl">運費（元）</label><input class="fi" type="number" id="eo-shipfee"></div></div>
+  <div class="fg"><label class="fl">LINE名稱</label><input class="fi" id="eo-line"></div>
   <div class="fg"><label class="fl">收件人姓名</label><input class="fi" id="eo-recvname"></div>
   <div class="fg"><label class="fl">收件人手機</label><input class="fi" type="tel" id="eo-recvphone"></div>
   <div class="fg"><label class="fl">地址</label><input class="fi" id="eo-address"></div>
@@ -511,7 +514,7 @@ function gp(id,el){
   document.getElementById('fab').classList.toggle('hid',id==='overview');
 }
 
-function openFab(){setDates();if(currentPage==='expenses')om('modal-expense');else if(currentPage==='batches')om('modal-batch');else om('modal-addorder')}
+function openFab(){setDates();if(currentPage==='expenses')om('modal-expense');else if(currentPage==='batches')om('modal-batch');else{fillAoBatchOptions();toggleAoPayment();refreshAoFee();om('modal-addorder')}}
 
 document.querySelectorAll('.mb').forEach(function(bg){bg.addEventListener('click',function(e){if(e.target===bg)bg.classList.remove('on')})});
 
@@ -546,23 +549,29 @@ function openOrder(o){
   var oid=o['訂單編號']||'';
   document.getElementById('mo-title').textContent=oid||'訂單詳情';
   var cur=o['訂單狀態']||'';
-  var isPaid=o['收款狀態']==='已付款';
+  var payStatus=o['收款狀態']||'未付款';
+  var isPaid=payStatus==='已付款';
+  // 免收款：公關品或 0 元訂單（含舊資料：來源是公關品且金額 0 也視為免收款）
+  var isFree=payStatus==='免收款'||((parseFloat(o['訂單金額'])||0)===0&&String(o['來源管道']||'').indexOf('公關品')>=0);
   var qty=o['訂購數量（瓶）']||'—';
   var sPills=['待確認','已確認','備貨中','已出貨','已送達','已取消'].map(function(s){
     return'<button class="sp'+(cur===s?' on':'')+'" data-s="'+s+'">'+s+'</button>';
   }).join('');
+  var payBtn=isFree
+    ?'<button class="btn btn-blk" style="flex:1;margin-top:0;background:#999" disabled>免收款</button>'
+    :'<button class="btn btn-blk" style="flex:1;margin-top:0;background:'+(isPaid?'#999':'var(--grn)')+'" id="pay-btn">'+(isPaid?'已收款 ✓':'標記已收款')+'</button>';
   document.getElementById('mo-body').innerHTML=
     dr('顧客',esc(o['訂購人姓名']))+dr('手機',esc(o['訂購人手機']))+dr('LINE',esc(o['LINE名稱']))+dr('來源',esc(o['來源管道']))+
-    dr('數量',esc(qty)+' 瓶')+dr('金額','$'+fmt(o['訂單金額']))+
+    dr('數量',esc(qty)+' 瓶')+dr('運費','$'+fmt(o['運費']||0))+dr('金額','$'+fmt(o['訂單金額'])+'（含運費）')+
     '<div class="dvl"></div>'+
     dr('配送',esc(o['配送方式']))+dr('收件人',esc(o['收件人姓名']))+dr('地址',esc(o['收件地址']))+
     (o['超商品牌']?dr('超商',esc(o['超商品牌'])+' '+esc(o['門市店號']||'')):'')+'<div class="dvl"></div>'+
-    dr('收款','<span class="bd '+(isPaid?'b-paid':'b-unpaid')+'">'+(o['收款狀態']||'未付款')+'</span>')+
+    dr('收款','<span class="bd '+((isPaid||isFree)?'b-paid':'b-unpaid')+'">'+(isFree?'免收款':esc(payStatus))+'</span>')+
     dr('物流單號',esc(o['物流單號']||'—'))+
     dr('出貨批次',esc(o['出貨批次']||'—'))+
     (o['備註']?dr('備註',esc(o['備註'])):'')+
     '<div style="margin-top:16px;display:flex;gap:8px">'+
-      '<button class="btn btn-blk" style="flex:1;margin-top:0;background:'+(isPaid?'#999':'var(--grn)')+'" id="pay-btn">'+(isPaid?'已收款 ✓':'標記已收款')+'</button>'+
+      payBtn+
       '<button class="btn btn-blk" style="flex:1;margin-top:0;background:#2D2D2D" id="edit-ord-btn">編輯</button>'+
     '</div>'+
     '<div style="margin-top:16px"><div class="lbl" style="margin-top:0">更新狀態</div><div class="sg" id="sg">'+sPills+'</div></div>'+
@@ -572,7 +581,7 @@ function openOrder(o){
   om('modal-order');
   // 綁事件
   document.getElementById('sg').querySelectorAll('.sp').forEach(function(btn){btn.addEventListener('click',function(){updateStatus(oid,this.dataset.s,this)})});
-  var pb=document.getElementById('pay-btn');if(pb&&!isPaid)pb.addEventListener('click',function(){markPaid(oid)});
+  var pb=document.getElementById('pay-btn');if(pb&&!isPaid&&!isFree)pb.addEventListener('click',function(){markPaid(oid)});
   var ebtn=document.getElementById('edit-ord-btn');if(ebtn)ebtn.addEventListener('click',function(){openEditOrderById(oid)});
   var tb=document.getElementById('track-btn');if(tb)tb.addEventListener('click',function(){saveTrackNo(oid)});
   var db=document.getElementById('del-ord-btn');if(db)db.addEventListener('click',function(){deleteOrder(oid)});
@@ -725,11 +734,58 @@ function renderBatches(){
   el.querySelectorAll('.lr').forEach(function(row){row.addEventListener('click',function(){openEditBatch(batchData[parseInt(this.dataset.idx)])})});
 }
 
-// 選「公關品／試吃」時單價自動帶 0（送的不算營收；仍會扣成品庫存）
+// ══════════════════════════════════════════════════════════════
+// 新增訂單：運費自動計算 ＋ 公關品處理 ＋ 預設批次
+// 運費規則：公關品/面交 0｜超商每 4 瓶一箱各 $60｜宅配 $120、滿 5 瓶免運
+// ══════════════════════════════════════════════════════════════
+function isPRSource(){return String(gv('ao-source')||'').indexOf('公關品')>=0}
+function calcShipFee(){
+  var dv=gv('ao-delivery'),qty=parseInt(gv('ao-qty'))||0;
+  if(isPRSource())return 0;
+  if(dv==='面交')return 0;
+  if(dv==='超商取貨')return Math.max(1,Math.ceil(Math.max(qty,1)/4))*60;
+  if(dv==='宅配到府')return qty>=5?0:120;
+  return 0;
+}
+function refreshAoFee(){sv('ao-shipfee',calcShipFee());updateAoTotal()}
+function updateAoTotal(){
+  var qty=parseInt(gv('ao-qty'))||0;
+  var price=parseFloat(gv('ao-price'));if(isNaN(price))price=220;
+  var fee=parseFloat(gv('ao-shipfee'))||0;
+  var el=document.getElementById('ao-total');if(!el)return;
+  var extra='';
+  if(gv('ao-delivery')==='超商取貨'&&qty>4)extra='　※超過4瓶拆'+Math.ceil(qty/4)+'箱寄，或改宅配免運';
+  if(gv('ao-delivery')==='宅配到府'&&qty>=5&&fee===0)extra='　※滿5瓶宅配免運';
+  el.textContent='訂單金額 $'+fmt(qty*price+fee)+'＝'+qty+'瓶×$'+fmt(price)+'＋運費$'+fmt(fee)+extra;
+}
+function toggleAoPayment(){
+  var fg=document.getElementById('ao-payment-fg');
+  if(fg)fg.style.display=isPRSource()?'none':'';
+}
+// 出貨批次下拉：先進先出，預設最舊且還有剩的批次
+function fillAoBatchOptions(){
+  var sel=document.getElementById('ao-batch');if(!sel)return;
+  var stats=batchStats().slice().reverse(); // 反轉成「最舊在前」
+  var opts='<option value="">暫不指定（之後可在訂單詳情補）</option>';
+  var def='';
+  stats.forEach(function(st){
+    var id=String(st.row['批次編號']||'').trim();if(!id)return;
+    var dis=st.remaining<=0;
+    if(!def&&!dis)def=id;
+    opts+='<option value="'+esc(id)+'"'+(dis?' disabled':'')+'>'+esc(id)+'（剩 '+st.remaining+' 罐）</option>';
+  });
+  sel.innerHTML=opts;
+  if(def)sel.value=def;
+}
 document.getElementById('ao-source').addEventListener('change',function(){
   var p=document.getElementById('ao-price');
-  if(this.value.indexOf('公關品')>=0){p.value=0}else if(parseFloat(p.value)===0){p.value=220}
+  if(isPRSource()){p.value=0}else if(parseFloat(p.value)===0){p.value=220}
+  toggleAoPayment();refreshAoFee();
 });
+document.getElementById('ao-delivery').addEventListener('change',refreshAoFee);
+document.getElementById('ao-qty').addEventListener('input',refreshAoFee);
+document.getElementById('ao-price').addEventListener('input',updateAoTotal);
+document.getElementById('ao-shipfee').addEventListener('input',updateAoTotal);
 
 // ══════════════════════════════════════════════════════════════
 // 寫入動作（成功後先更新畫面，再背景同步校正）
@@ -772,13 +828,20 @@ async function submitBatch(){
 async function submitAddOrder(){
   var btn=document.getElementById('ao-submit');
   if(!gv('ao-name')||!gv('ao-qty')){toast('請填入顧客姓名和數量');return}
+  var price=parseFloat(gv('ao-price'));if(isNaN(price))price=220;
+  var qty=parseInt(gv('ao-qty'))||0;
+  var fee=parseFloat(gv('ao-shipfee'))||0;
+  var isPR=isPRSource();
+  var batchId=gv('ao-batch')||'';
+  if(batchId){
+    var st=batchStats().find(function(x){return String(x.row['批次編號']||'').trim()===batchId});
+    if(st&&st.remaining<qty&&!confirm('批次 '+batchId+' 只剩 '+st.remaining+' 罐，這張訂單要 '+qty+' 瓶會超出。\n仍要指定這個批次嗎？'))return;
+  }
   btn.disabled=true;btn.textContent='新增中…';
   try{
-    var price=parseFloat(gv('ao-price'));if(isNaN(price))price=220;
-    var qty=parseInt(gv('ao-qty'))||0;
-    var result=await apiPost({action:'addOrder',data:{date:gv('ao-date'),source:gv('ao-source'),buyerName:gv('ao-name'),buyerPhone:gv('ao-phone'),qty:qty,unitPrice:price,delivery:gv('ao-delivery'),address:gv('ao-address'),paymentMethod:gv('ao-payment'),lineName:gv('ao-line'),note:gv('ao-note')}});
+    var result=await apiPost({action:'addOrder',data:{date:gv('ao-date'),source:gv('ao-source'),buyerName:gv('ao-name'),buyerPhone:gv('ao-phone'),qty:qty,unitPrice:price,shippingFee:fee,batchId:batchId,delivery:gv('ao-delivery'),address:gv('ao-address'),paymentMethod:isPR?'':gv('ao-payment'),lineName:gv('ao-line'),note:gv('ao-note')}});
     // 先塞進本地讓列表與總覽立刻反映
-    allOrders.unshift({'訂單編號':result.orderId,'下單日期':gv('ao-date'),'來源管道':gv('ao-source'),'訂購人姓名':gv('ao-name'),'訂購人手機':gv('ao-phone'),'LINE名稱':gv('ao-line'),'訂購數量（瓶）':qty,'單價':price,'訂單金額':result.amount,'配送方式':gv('ao-delivery'),'收件人姓名':gv('ao-name'),'收件人手機':gv('ao-phone'),'收件地址':gv('ao-address'),'收款方式':gv('ao-payment'),'收款狀態':'未付款','訂單狀態':'待確認','備註':gv('ao-note')});
+    allOrders.unshift({'訂單編號':result.orderId,'下單日期':gv('ao-date'),'來源管道':gv('ao-source'),'訂購人姓名':gv('ao-name'),'訂購人手機':gv('ao-phone'),'LINE名稱':gv('ao-line'),'訂購數量（瓶）':qty,'單價':price,'運費':fee,'訂單金額':result.amount,'配送方式':gv('ao-delivery'),'收件人姓名':gv('ao-name'),'收件人手機':gv('ao-phone'),'收件地址':gv('ao-address'),'收款方式':isPR?'':gv('ao-payment'),'收款狀態':(isPR||result.amount===0)?'免收款':'未付款','訂單狀態':'待確認','出貨批次':batchId,'備註':gv('ao-note')});
     renderAll();
     toast('訂單已新增：'+result.orderId);cm('modal-addorder');
     ['ao-name','ao-phone','ao-qty','ao-address','ao-line','ao-note'].forEach(function(id){sv(id,'')});
@@ -795,6 +858,7 @@ function openEditOrder(o){
   sv('eo-name',o['訂購人姓名']);sv('eo-phone',o['訂購人手機']);
   sv('eo-qty',o['訂購數量（瓶）']);
   sv('eo-price',kv(o,['單價'],220)); // ★ 0 元公關品不會被帶回 220
+  sv('eo-shipfee',kv(o,['運費'],0));
   ssel('eo-delivery',o['配送方式']);sv('eo-line',o['LINE名稱']);
   sv('eo-recvname',o['收件人姓名']);sv('eo-recvphone',o['收件人手機']);
   sv('eo-address',o['收件地址']);sv('eo-convbrand',o['超商品牌']);sv('eo-convstore',o['門市店號']);
@@ -807,14 +871,15 @@ async function submitEditOrder(){
   try{
     var price=parseFloat(gv('eo-price'));if(isNaN(price))price=220;
     var qty=parseInt(gv('eo-qty'))||0;
+    var fee=parseFloat(gv('eo-shipfee'))||0;
     var oid=gv('eo-id');
-    await apiPost({action:'editOrder',orderId:oid,data:{date:gv('eo-date'),source:gv('eo-source'),buyerName:gv('eo-name'),buyerPhone:gv('eo-phone'),qty:qty,unitPrice:price,delivery:gv('eo-delivery'),lineName:gv('eo-line'),recvName:gv('eo-recvname'),recvPhone:gv('eo-recvphone'),address:gv('eo-address'),convBrand:gv('eo-convbrand'),convStore:gv('eo-convstore'),note:gv('eo-note')}});
+    await apiPost({action:'editOrder',orderId:oid,data:{date:gv('eo-date'),source:gv('eo-source'),buyerName:gv('eo-name'),buyerPhone:gv('eo-phone'),qty:qty,unitPrice:price,shippingFee:fee,delivery:gv('eo-delivery'),lineName:gv('eo-line'),recvName:gv('eo-recvname'),recvPhone:gv('eo-recvphone'),address:gv('eo-address'),convBrand:gv('eo-convbrand'),convStore:gv('eo-convstore'),note:gv('eo-note')}});
     // 本地同步更新，畫面立刻反映
     var o=allOrders.find(function(x){return x['訂單編號']===oid});
     if(o){
       o['下單日期']=gv('eo-date');o['來源管道']=gv('eo-source');
       o['訂購人姓名']=gv('eo-name');o['訂購人手機']=gv('eo-phone');
-      o['訂購數量（瓶）']=qty;o['單價']=price;o['訂單金額']=qty*price;
+      o['訂購數量（瓶）']=qty;o['單價']=price;o['運費']=fee;o['訂單金額']=qty*price+fee;
       o['配送方式']=gv('eo-delivery');o['LINE名稱']=gv('eo-line');
       o['收件人姓名']=gv('eo-recvname');o['收件人手機']=gv('eo-recvphone');
       o['收件地址']=gv('eo-address');o['超商品牌']=gv('eo-convbrand');o['門市店號']=gv('eo-convstore');
