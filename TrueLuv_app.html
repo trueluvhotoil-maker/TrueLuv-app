@@ -10,8 +10,10 @@
 body{background:var(--bg);color:var(--ink);font-family:-apple-system,'Helvetica Neue',sans-serif;min-height:100vh;padding-bottom:72px;-webkit-font-smoothing:antialiased}
 .hd{padding:24px 20px 16px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:50;background:var(--bg)}
 .wm{font-size:26px;font-weight:900;letter-spacing:-1.5px;color:var(--ink)}
-.sync{font-size:11px;font-weight:600;color:var(--ink2);background:var(--sf);border:1px solid var(--bd);border-radius:20px;padding:6px 14px;cursor:pointer;font-family:inherit}
-.sync:active{background:var(--bd)}
+.sync-st{font-size:11px;font-weight:600;color:var(--ink3);display:inline-flex;align-items:center;gap:5px;padding:6px 4px;opacity:0;transition:opacity .25s;pointer-events:none}
+.sync-st.on{opacity:1}
+.retry-btn{font-size:12px;font-weight:700;color:var(--ink);background:var(--sf);border:1px solid var(--bd);border-radius:20px;padding:9px 20px;margin-top:14px;cursor:pointer;font-family:inherit}
+.retry-btn:active{background:var(--bd)}
 .spin{animation:spin .6s linear infinite;display:inline-block}
 @keyframes spin{to{transform:rotate(360deg)}}
 nav{position:fixed;bottom:0;left:0;right:0;background:var(--sf);border-top:1px solid var(--bd);display:flex;z-index:100;padding-bottom:env(safe-area-inset-bottom)}
@@ -131,7 +133,7 @@ nav{position:fixed;bottom:0;left:0;right:0;background:var(--sf);border-top:1px s
 <body>
 <div class="hd">
   <div class="wm">初辣</div>
-  <button class="sync" onclick="loadAll()"><span id="si">↻</span> 更新</button>
+  <span class="sync-st" id="sync-st"><span class="spin">↻</span> 同步中</span>
 </div>
 <nav>
   <button class="ni on" onclick="gp('overview',this)"><span class="ni-ic">◎</span>總覽</button>
@@ -278,7 +280,9 @@ nav{position:fixed;bottom:0;left:0;right:0;background:var(--sf);border-top:1px s
 //  1. 一次請求（action=all）抓回全部資料，取代原本 3~5 個請求
 //  2. 總覽數字由前端從眼前的資料即時計算 → 永遠與各分頁同步
 //  3. localStorage 快取：打開 app 立刻顯示上次資料，背景自動更新
-//  4. 每個寫入動作先更新畫面，再背景同步校正，不用手動點更新
+//  4. 每個寫入動作先更新畫面，再背景同步校正
+//  4b. 全自動同步：已移除右上角「更新」鈕，改為開啟時／回到前景／
+//      每 45 秒／網路恢復時自動抓資料，失敗則遞增間隔自動重試
 // Bug 修正：
 //  5. 日期時差（toDate/today 改用本地時間，編輯日期不再少一天）
 //  6. JSONP callback 名稱加亂數，不再互相碰撞造成「連線逾時」
@@ -339,7 +343,7 @@ function apiGet(action){
     var sc=document.createElement('script');
     var done=false;
     function cleanup(){done=true;delete window[cb];if(sc.parentNode)sc.parentNode.removeChild(sc)}
-    var timer=setTimeout(function(){if(done)return;cleanup();reject(new Error('連線逾時，請點更新重試'))},30000);
+    var timer=setTimeout(function(){if(done)return;cleanup();reject(new Error('連線逾時，稍後自動重試'))},30000);
     window[cb]=function(j){if(done)return;clearTimeout(timer);cleanup();if(j.status!=='ok')reject(new Error(j.message));else resolve(j.data)};
     sc.onerror=function(){if(done)return;clearTimeout(timer);cleanup();reject(new Error('連線失敗，請確認網路'))};
     sc.src=API+'?action='+action+'&key='+KEY+'&callback='+cb;
@@ -370,10 +374,11 @@ function loadCacheAndRender(){
 }
 
 // ── 載入全部（唯一的讀取請求）──
-async function loadAll(isFirst){
+// quiet=true 時不跳 toast（背景自動同步用，避免一直冒「已更新」）
+async function loadAll(isFirst,quiet){
   if(refreshing)return;
   refreshing=true;
-  var icon=document.getElementById('si');icon.className='spin';
+  var ind=document.getElementById('sync-st');if(ind)ind.classList.add('on');
   try{
     var d=await apiGet('all');
     allOrders=(d.orders||[]).slice().reverse();     // 最新在前
@@ -382,20 +387,52 @@ async function loadAll(isFirst){
     stockData=d.stock||[];
     lastUpdated=new Date();
     loadedOnce=true;
+    retryStep=0;
     saveCache();
     renderAll();
-    if(!isFirst)toast('已更新');
+    if(!isFirst&&!quiet)toast('已更新');
   }catch(e){
     if(isFirst&&!lastUpdated){showLoadError(e.message)}
-    else toast('更新失敗：'+e.message);
+    else if(!quiet)toast('更新失敗：'+e.message);
+    scheduleRetry();   // 失敗了自己重試，不用使用者動手
   }
-  icon.className='';
+  if(ind)ind.classList.remove('on');
   refreshing=false;
 }
 // 背景靜默更新：寫入成功後呼叫，把本地資料跟 Sheet 校正
-function refresh(){loadAll(false)}
+function refresh(){loadAll(false,true)}
+
+// ── 自動同步引擎（取代右上角的手動更新鈕）──
+var POLL_MS   = 45000;  // 停留在 app 時每 45 秒背景抓一次
+var MIN_GAP_MS= 8000;   // 兩次同步至少間隔 8 秒，避免切換分頁狂打
+var RETRY_MS  = [5000,15000,30000,60000];
+var pollTimer=null, retryTimer=null, retryStep=0;
+
+function sinceLast(){return lastUpdated?(Date.now()-lastUpdated.getTime()):Infinity}
+function autoSync(force){
+  if(document.hidden)return;                       // 在背景就不浪費流量
+  if(document.querySelector('.mb.on'))return;      // 有視窗開著（正在填表）先不動
+  if(!force&&sinceLast()<MIN_GAP_MS)return;
+  loadAll(false,true);
+}
+function scheduleRetry(){
+  clearTimeout(retryTimer);
+  var wait=RETRY_MS[Math.min(retryStep,RETRY_MS.length-1)];
+  retryStep++;
+  retryTimer=setTimeout(function(){loadAll(!loadedOnce,true)},wait);
+}
+function startAutoSync(){
+  clearInterval(pollTimer);
+  pollTimer=setInterval(function(){autoSync(false)},POLL_MS);
+  // 從背景切回來、重新聚焦、iOS 上滑掉又打開 → 立刻抓一次
+  document.addEventListener('visibilitychange',function(){if(!document.hidden)autoSync(false)});
+  window.addEventListener('focus',function(){autoSync(false)});
+  window.addEventListener('pageshow',function(e){if(e.persisted)autoSync(true)});
+  window.addEventListener('online',function(){autoSync(true)});
+}
+
 function showLoadError(msg){
-  var h='<div class="em"><div class="em-ic">⚠</div><div class="em-t">連線失敗</div><div class="em-d">'+esc(msg)+'<br>請點右上角「↻ 更新」重試</div></div>';
+  var h='<div class="em"><div class="em-ic">⚠</div><div class="em-t">連線失敗</div><div class="em-d">'+esc(msg)+'<br>連線恢復後會自動載入</div><button class="retry-btn" onclick="loadAll(true)">立即重試</button></div>';
   document.getElementById('page-overview').innerHTML=h;
   ['orders-content','stock-content','expenses-content','batches-content'].forEach(function(id){document.getElementById(id).innerHTML=h});
 }
@@ -1035,6 +1072,7 @@ async function submitEditStock(){
   var hadCache=false;
   try{hadCache=loadCacheAndRender()}catch(x){}
   loadAll(!hadCache);
+  startAutoSync();
 })();
 </script>
 </body>
