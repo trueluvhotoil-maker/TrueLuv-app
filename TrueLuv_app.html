@@ -100,8 +100,12 @@ nav{position:fixed;bottom:0;left:0;right:0;background:var(--sf);border-top:1px s
 .seg{display:grid;grid-template-columns:1fr 1fr;gap:6px;background:var(--bg);border-radius:var(--rs);padding:4px}
 .seg button{border:none;background:none;border-radius:8px;padding:10px 6px;font-size:14px;font-weight:700;font-family:inherit;color:var(--ink2);cursor:pointer}
 .seg button.on{background:var(--sf);color:var(--ink);box-shadow:0 1px 3px rgba(0,0,0,.08)}
-.calc{font-size:12px;color:#8A8578;margin:-6px 2px 12px;line-height:1.5}
-.calc b{color:var(--ink);font-size:14px}
+.f21{display:grid;grid-template-columns:2fr 1fr;gap:10px}
+.f3{display:grid;grid-template-columns:1fr 1fr 84px;gap:10px}
+.f3 .fi-s{padding-right:26px;background-position:right 10px center}
+.calc{display:flex;justify-content:space-between;align-items:baseline;background:var(--bg);border-radius:var(--rs);padding:12px 14px;margin:-4px 0 14px;font-size:13px;color:var(--ink2)}
+.calc b{color:var(--ink);font-size:18px;font-weight:800}
+.calc.empty{justify-content:flex-start;color:var(--ink3)}
 .rbox{background:var(--bg);border-radius:var(--rs);padding:14px;margin-bottom:14px}
 .rlbl{font-size:9px;font-weight:800;letter-spacing:1.5px;text-transform:uppercase;color:var(--ink3);margin-bottom:10px}
 .btn{width:100%;border:none;border-radius:var(--rs);padding:15px;font-size:15px;font-weight:800;font-family:inherit;cursor:pointer;transition:opacity .15s;letter-spacing:-.2px}
@@ -171,9 +175,8 @@ nav{position:fixed;bottom:0;left:0;right:0;background:var(--sf);border-top:1px s
 <div class="mb" id="modal-expense"><div class="mo">
   <div class="mh"></div><div class="mt">新增支出</div>
   <div class="f2"><div class="fg"><label class="fl">日期</label><input class="fi" type="date" id="exp-date"></div><div class="fg"><label class="fl">類別</label><select class="fi fi-s" id="exp-category"><option>原物料採購</option><option>包裝材料</option><option>市集攤位費</option><option>運費／寄件</option><option>設備工具</option><option>行銷設計</option><option>雜支</option></select></div></div>
-  <div class="fg"><label class="fl">品名</label><input class="fi" id="exp-name" list="exp-name-list" placeholder="例：雞心椒粉"></div>
-  <div class="f2"><div class="fg"><label class="fl">規格（每單位）</label><input class="fi" id="exp-spec" placeholder="例：300g"></div><div class="fg"><label class="fl">單價（元）</label><input class="fi" type="number" inputmode="decimal" id="exp-uprice" placeholder="250"></div></div>
-  <div class="f2"><div class="fg"><label class="fl">數量</label><input class="fi" type="number" inputmode="decimal" id="exp-qty" value="1"></div><div class="fg"><label class="fl">單位</label><input class="fi" id="exp-qunit" list="exp-unit-list" value="包" placeholder="包"></div></div>
+  <div class="f21"><div class="fg"><label class="fl">品名</label><input class="fi" id="exp-name" list="exp-name-list" placeholder="例：雞心椒粉"></div><div class="fg"><label class="fl">規格（選填）</label><input class="fi" id="exp-spec" placeholder="300g"></div></div>
+  <div class="f3"><div class="fg"><label class="fl">單價（元）</label><input class="fi" type="number" inputmode="decimal" id="exp-uprice" placeholder="0"></div><div class="fg"><label class="fl">數量</label><input class="fi" type="number" inputmode="decimal" id="exp-qty" value="1"></div><div class="fg"><label class="fl">單位</label><select class="fi fi-s" id="exp-qunit"><option>包</option><option>瓶</option><option>罐</option><option>個</option><option>箱</option><option>捲</option><option>張</option><option>組</option><option>公斤</option><option>次</option></select></div></div>
   <div class="calc" id="exp-calc"></div>
   <div class="f2"><div class="fg"><label class="fl">付款方式</label><select class="fi fi-s" id="exp-payment"><option>匯款</option><option>現金</option><option>信用卡</option><option>LINE Pay</option></select></div><div class="fg"><label class="fl">供應商</label><input class="fi" id="exp-supplier" placeholder="益昌實業"></div></div>
   <div class="fg"><label class="fl">備註</label><input class="fi" id="exp-note" placeholder="選填"></div>
@@ -182,7 +185,6 @@ nav{position:fixed;bottom:0;left:0;right:0;background:var(--sf);border-top:1px s
 </div></div>
 
 <datalist id="exp-name-list"></datalist>
-<datalist id="exp-unit-list"><option value="包"><option value="瓶"><option value="罐"><option value="個"><option value="箱"><option value="捲"><option value="張"><option value="組"><option value="公斤"><option value="次"></datalist>
 
 <!-- 新增生產批次 -->
 <div class="mb" id="modal-batch"><div class="mo">
@@ -244,9 +246,8 @@ nav{position:fixed;bottom:0;left:0;right:0;background:var(--sf);border-top:1px s
   <div class="mh"></div><div class="mt">編輯支出</div>
   <input type="hidden" id="ee-rowindex">
   <div class="f2"><div class="fg"><label class="fl">日期</label><input class="fi" type="date" id="ee-date"></div><div class="fg"><label class="fl">類別</label><select class="fi fi-s" id="ee-category"><option>原物料採購</option><option>包裝材料</option><option>市集攤位費</option><option>運費／寄件</option><option>設備工具</option><option>行銷設計</option><option>雜支</option></select></div></div>
-  <div class="fg"><label class="fl">品名</label><input class="fi" id="ee-name" list="exp-name-list" placeholder="例：雞心椒粉"></div>
-  <div class="f2"><div class="fg"><label class="fl">規格（每單位）</label><input class="fi" id="ee-spec" placeholder="例：300g"></div><div class="fg"><label class="fl">單價（元）</label><input class="fi" type="number" inputmode="decimal" id="ee-uprice" placeholder="250"></div></div>
-  <div class="f2"><div class="fg"><label class="fl">數量</label><input class="fi" type="number" inputmode="decimal" id="ee-qty" value="1"></div><div class="fg"><label class="fl">單位</label><input class="fi" id="ee-qunit" list="exp-unit-list" value="包" placeholder="包"></div></div>
+  <div class="f21"><div class="fg"><label class="fl">品名</label><input class="fi" id="ee-name" list="exp-name-list" placeholder="例：雞心椒粉"></div><div class="fg"><label class="fl">規格（選填）</label><input class="fi" id="ee-spec" placeholder="300g"></div></div>
+  <div class="f3"><div class="fg"><label class="fl">單價（元）</label><input class="fi" type="number" inputmode="decimal" id="ee-uprice" placeholder="0"></div><div class="fg"><label class="fl">數量</label><input class="fi" type="number" inputmode="decimal" id="ee-qty" value="1"></div><div class="fg"><label class="fl">單位</label><select class="fi fi-s" id="ee-qunit"><option>包</option><option>瓶</option><option>罐</option><option>個</option><option>箱</option><option>捲</option><option>張</option><option>組</option><option>公斤</option><option>次</option></select></div></div>
   <div class="calc" id="ee-calc"></div>
   <div class="f2"><div class="fg"><label class="fl">付款方式</label><select class="fi fi-s" id="ee-payment"><option>匯款</option><option>現金</option><option>信用卡</option><option>LINE Pay</option></select></div><div class="fg"><label class="fl">供應商</label><input class="fi" id="ee-supplier" placeholder="益昌實業"></div></div>
   <div class="fg"><label class="fl">備註</label><input class="fi" id="ee-note" placeholder="選填"></div>
@@ -305,6 +306,8 @@ nav{position:fixed;bottom:0;left:0;right:0;background:var(--sf);border-top:1px s
 // v3 新增：
 //  9. 訂單新增「禮盒」品項（$600／盒），扣庫存自動換算瓶數
 // 10. 支出改為 品名＋規格＋單價×數量，金額自動計算
+// 12. 支出表單精簡：規格改選填、單價／數量／單位同一列、金額小結
+// 11. 修改生產日期時批號自動跟著改，訂單的出貨批次同步更新（需搭配 Apps Script renameBatch）
 // ══════════════════════════════════════════════════════════════
 var API = "https://script.google.com/macros/s/AKfycbycsADk9T9TGLXjAMmSWpe32fK4Tgv5U7aSKTg5TEyaAaXes2kV6hZKNEF4_f4HIyXc/exec";
 var KEY = "UyOOqaYEjzLn2LLi4owNu9JOpCNLOkRu"; // ★ 要跟 Apps Script 裡的 API_KEY 一模一樣 ★
@@ -388,25 +391,38 @@ function parseDesc(desc,amount){
 function composeDesc(name,spec,price,qty,unit){
   name=String(name||'').trim();spec=String(spec||'').trim();unit=String(unit||'').trim();
   // 沒規格且只有 1 個 → 只存品名（保留「寄件費 ORD-xxx」這類自動記錄的原樣）
-  if(!spec&&parseFloat(qty)===1&&!unit)return name;
+  if(!spec&&parseFloat(qty)===1)return name;
   return name+'｜'+(spec?spec+'｜':'')+'$'+numStr(price)+'×'+numStr(qty)+unit;
+}
+function setUnit(p,u){
+  var el=document.getElementById(p+'-qunit');u=String(u||'').trim()||'包';
+  if(![].some.call(el.options,function(o){return o.value===u})){var o=document.createElement('option');o.textContent=u;el.appendChild(o)}
+  el.value=u;
 }
 function expDetail(d){if(!d.structured)return'';return(d.spec?d.spec+'　':'')+'$'+fmt(d.price)+' × '+numStr(d.qty)+d.unit}
 function expTotal(p){var pr=parseFloat(gv(p+'-uprice')),q=parseFloat(gv(p+'-qty'));if(isNaN(pr)||isNaN(q))return NaN;return Math.round(pr*q*100)/100}
 function updateExpCalc(p){
   var el=document.getElementById(p+'-calc');if(!el)return;
   var t=expTotal(p);
-  if(isNaN(t)){el.innerHTML='填入單價與數量，金額會自動計算';return}
-  el.innerHTML='金額 <b>$'+fmt(t)+'</b>　＝ $'+fmt(gv(p+'-uprice'))+' × '+numStr(gv(p+'-qty'))+esc(gv(p+'-qunit'))+(gv(p+'-spec')?'（每'+esc(gv(p+'-qunit')||'單位')+' '+esc(gv(p+'-spec'))+'）':'');
+  if(isNaN(t)){el.className='calc empty';el.textContent='填入單價與數量，自動計算金額';return}
+  el.className='calc';
+  el.innerHTML='<span>$'+fmt(gv(p+'-uprice'))+' × '+numStr(gv(p+'-qty'))+' '+esc(gv(p+'-qunit'))+'</span><b>$'+fmt(t)+'</b>';
 }
 // 品名選到庫存裡的原物料時，自動帶入採購規格與採購價（欄位空白才帶，不蓋掉你打的）
 function stockField(s,key){var v='';Object.keys(s).forEach(function(k){if(k.indexOf(key)>=0&&s[k]!==''&&s[k]!=null)v=s[k]});return v}
 function autofillFromStock(p){
   var name=String(gv(p+'-name')||'').trim();if(!name)return;
   var s=stockData.find(function(x){return String(x['品項名稱']||'').trim()===name});if(!s)return;
-  var spec=stockField(s,'採購規格'),unit=s['單位']||'',price=stockField(s,'採購價');
-  if(!gv(p+'-spec')&&parseFloat(spec)>0)sv(p+'-spec',numStr(spec)+unit);
-  if(!gv(p+'-uprice')&&parseFloat(price)>0)sv(p+'-uprice',price);
+  var spec=parseFloat(stockField(s,'採購規格')),unit=String(s['單位']||'').trim(),price=parseFloat(stockField(s,'採購價'));
+  if(/^(g|kg|ml|l|公克|公斤|毫升|公升)$/i.test(unit)){
+    // 秤重／容量的原料：一包 300g $135 → 規格 300g、單價 135、單位 包
+    if(!gv(p+'-spec')&&spec>0)sv(p+'-spec',numStr(spec)+unit);
+    if(!gv(p+'-uprice')&&price>0)sv(p+'-uprice',price);
+  }else if(unit){
+    // 論個數的包材：48個 $600 → 單位 個、單價 12.5，不另填規格
+    setUnit(p,unit);
+    if(!gv(p+'-uprice')&&price>0&&spec>0)sv(p+'-uprice',numStr(price/spec));
+  }
   if(!gv(p+'-supplier')&&s['供應商']&&s['供應商']!=='待確認')sv(p+'-supplier',s['供應商']);
   updateExpCalc(p);
 }
@@ -963,7 +979,8 @@ document.getElementById('ao-shipfee').addEventListener('input',updateAoTotal);
 });
 // 支出：即時算金額、品名自動帶入
 ['exp','ee'].forEach(function(p){
-  ['uprice','qty','qunit','spec'].forEach(function(f){document.getElementById(p+'-'+f).addEventListener('input',function(){updateExpCalc(p)})});
+  ['uprice','qty'].forEach(function(f){document.getElementById(p+'-'+f).addEventListener('input',function(){updateExpCalc(p)})});
+  document.getElementById(p+'-qunit').addEventListener('change',function(){updateExpCalc(p)});
   document.getElementById(p+'-name').addEventListener('change',function(){autofillFromStock(p)});
 });
 
@@ -985,7 +1002,7 @@ async function submitExpense(){
     renderExpenses();renderOverview();
     toast('支出已記錄：$'+fmt(amt));cm('modal-expense');
     ['exp-name','exp-spec','exp-uprice','exp-supplier','exp-note'].forEach(function(id){sv(id,'')});
-    sv('exp-qty',1);sv('exp-qunit','包');updateExpCalc('exp');
+    sv('exp-qty',1);setUnit('exp','包');updateExpCalc('exp');
     refresh();
   }catch(e){toast('失敗：'+e.message)}
   finally{btn.disabled=false;btn.textContent='儲存支出'}
@@ -1088,7 +1105,7 @@ function openEditExpense(r){
   sv('ee-rowindex',r['_row']);sv('ee-date',toDate(r['日期']));ssel('ee-category',r['類別']);
   var d=parseDesc(r['項目說明'],r['金額（元）']);
   fillExpNameList();
-  sv('ee-name',d.name);sv('ee-spec',d.spec);sv('ee-uprice',d.price);sv('ee-qty',d.qty);sv('ee-qunit',d.unit);
+  sv('ee-name',d.name);sv('ee-spec',d.spec);sv('ee-uprice',d.price);sv('ee-qty',d.qty);setUnit('ee',d.unit);
   updateExpCalc('ee');
   ssel('ee-payment',r['付款方式']);sv('ee-supplier',r['供應商／對象']);sv('ee-note',r['備註']);
   om('modal-edit-expense');
@@ -1127,15 +1144,33 @@ function openEditBatch(r){
   sv('eb-hungary',kv(r,['匈牙利紅椒粉(g)','匈牙利紅椒粉'],20));sv('eb-note',r['備註']);
   om('modal-edit-batch');
 }
+// 批號裡的日期段（TL-260908-B01 → 260908）與生產日期換算
+function ymdOfDate(v){var d=toDate(v);return d?d.slice(2,4)+d.slice(5,7)+d.slice(8,10):''}
+function ymdOfBatchId(id){var m=String(id||'').match(/^TL-(\d{6})-B\d+$/);return m?m[1]:''}
 async function submitEditBatch(){
   var btn=document.getElementById('eb-submit');btn.disabled=true;btn.textContent='儲存中…';
   try{
-    await apiPost({action:'editBatch',row:gv('eb-rowindex'),data:{date:gv('eb-date'),qty:gv('eb-qty'),oil:gv('eb-oil'),devil:gv('eb-devil'),facing:gv('eb-facing'),heart:gv('eb-heart'),ejing:gv('eb-ejing'),peppercorn:gv('eb-peppercorn'),hungary:gv('eb-hungary'),note:gv('eb-note')}});
+    var oldId=curBat?String(curBat['批次編號']||'').trim():'';
+    var newDate=gv('eb-date');
+    await apiPost({action:'editBatch',row:gv('eb-rowindex'),data:{date:newDate,qty:gv('eb-qty'),oil:gv('eb-oil'),devil:gv('eb-devil'),facing:gv('eb-facing'),heart:gv('eb-heart'),ejing:gv('eb-ejing'),peppercorn:gv('eb-peppercorn'),hungary:gv('eb-hungary'),note:gv('eb-note')}});
     if(curBat){
-      curBat['生產日期']=gv('eb-date');curBat['產出瓶數']=parseFloat(gv('eb-qty'))||0;curBat['備註']=gv('eb-note');
+      curBat['生產日期']=newDate;curBat['產出瓶數']=parseFloat(gv('eb-qty'))||0;curBat['備註']=gv('eb-note');
     }
-    renderBatches();renderOverview();renderStock();saveCache();
-    toast('批次已更新');cm('modal-edit-batch');
+    var msg='批次已更新';
+    // ★ 生產日期換了日子 → 批號跟著改（訂單的「出貨批次」也一併換成新批號）
+    if(oldId&&newDate&&ymdOfBatchId(oldId)!==ymdOfDate(newDate)){
+      try{
+        var r=await apiPost({action:'renameBatch',row:gv('eb-rowindex'),oldId:oldId,date:newDate});
+        var newId=r.batchId;
+        if(curBat)curBat['批次編號']=newId;
+        allOrders.forEach(function(o){if(String(o['出貨批次']||'').trim()===oldId)o['出貨批次']=newId});
+        msg='批號已改為 '+newId+(r.ordersUpdated?'（'+r.ordersUpdated+' 筆訂單同步更新）':'');
+      }catch(e2){
+        msg=/未知的 action/.test(e2.message)?'日期已存，但批號沒改：Apps Script 需要先更新':'日期已存，批號更新失敗：'+e2.message;
+      }
+    }
+    renderAll();saveCache();
+    toast(msg);cm('modal-edit-batch');
     refresh();
   }catch(e){toast('失敗：'+e.message)}
   finally{btn.disabled=false;btn.textContent='儲存修改'}
